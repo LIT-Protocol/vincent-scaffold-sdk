@@ -1,0 +1,1 @@
+/// <reference path="../../templates/global.d.ts" /> 

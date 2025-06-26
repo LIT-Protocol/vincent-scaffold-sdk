@@ -1,0 +1,103 @@
+{
+  "name": "@lit-protocol/vincent-scaffold-sdk",
+  "version": "0.0.67",
+  "description": "Shared build configuration and utilities for Vincent tools and policies",
+  "main": "index.js",
+  "bin": {
+    "vincent-scaffold": "./bin/cli.js"
+  },
+  "files": [
+    "index.js",
+    "bin/cli.js",
+    "src/",
+    "dist/",
+    "tsconfig.base.example.json",
+    "tsconfig.lib.example.json",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/exports/la-utils/index.d.ts",
+      "require": "./dist/exports/la-utils/index.js",
+      "import": "./dist/exports/la-utils/index.js",
+      "default": "./dist/exports/la-utils/index.js"
+    },
+    "./e2e": {
+      "types": "./dist/exports/e2e/index.d.ts",
+      "require": "./dist/exports/e2e/index.js",
+      "import": "./dist/exports/e2e/index.js",
+      "default": "./dist/exports/e2e/index.js"
+    },
+    "./constants": {
+      "types": "./dist/exports/e2e/constants/index.d.ts",
+      "require": "./dist/exports/e2e/constants/index.js",
+      "import": "./dist/exports/e2e/constants/index.js",
+      "default": "./dist/exports/e2e/constants/index.js"
+    },
+    "./utils": {
+      "types": "./dist/exports/e2e/utils/index.d.ts",
+      "require": "./dist/exports/e2e/utils/index.js",
+      "import": "./dist/exports/e2e/utils/index.js",
+      "default": "./dist/exports/e2e/utils/index.js"
+    },
+    "./managers": {
+      "types": "./dist/exports/e2e/managers/index.d.ts",
+      "require": "./dist/exports/e2e/managers/index.js",
+      "import": "./dist/exports/e2e/managers/index.js",
+      "default": "./dist/exports/e2e/managers/index.js"
+    },
+    "./la-utils": {
+      "types": "./dist/exports/la-utils/index.d.ts",
+      "require": "./dist/exports/la-utils/index.js",
+      "import": "./dist/exports/la-utils/index.js",
+      "default": "./dist/exports/la-utils/index.js"
+    },
+    "./esbuild-config": "./src/esbuild-share-config.js",
+    "./deno-fetch-shim": "./src/deno-fetch-shim.js",
+    "./deploy-lit-action": "./src/deploy-lit-action.js"
+  },
+  "scripts": {
+    "generate:abis": "dotenv -e .env -- sh -c 'abi-to-signature ./src/e2e/abis/VincentAppFacet.abi.json ./src/e2e/abis/generated --name vincentAppFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentAppViewFacet.abi.json ./src/e2e/abis/generated --name vincentAppViewFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentUserFacet.abi.json ./src/e2e/abis/generated --name vincentUserFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentUserViewFacet.abi.json ./src/e2e/abis/generated --name vincentUserViewFacetSignatures --address $VINCENT_ADDRESS'",
+    "build": "tsc",
+    "prepublishOnly": "npm run validate && npm run sync-versions && npm run build",
+    "validate": "node -c ./src/esbuild-share-config.js && node -c ./src/deno-fetch-shim.js",
+    "sync-versions": "node scripts/sync-template-versions.js"
+  },
+  "keywords": [
+    "vincent",
+    "esbuild",
+    "build-tools",
+    "lit-protocol",
+    "vincent-tool",
+    "vincent-policy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "esbuild": "^0.19.0",
+    "esbuild-plugin-polyfill-node": "^0.3.0",
+    "ipfs-only-hash": "^4.0.0",
+    "inquirer": "^8.2.6",
+    "chalk": "4.1.2",
+    "@ansonhkg/abi-extractor": "1.0.0",
+    "@lit-protocol/contracts-sdk": "^7.2.0",
+    "@wagmi/core": "^2.17.3",
+    "ethers": "5.7.2",
+    "viem": "^2.31.4",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@lit-protocol/vincent-tool-sdk": "*",
+    "@lit-protocol/vincent-app-sdk": "*"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
