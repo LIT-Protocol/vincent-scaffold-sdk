@@ -1,18 +1,11 @@
 import {
   createVincentTool,
-  supportedPoliciesForTool,
   createVincentToolPolicy,
+  supportedPoliciesForTool,
 } from "@lit-protocol/vincent-tool-sdk";
-// Required for TypeScript type inference - imports helper types without creating unused variables
 import "@lit-protocol/vincent-tool-sdk/internal";
+import { bundledVincentPolicy } from "../../../../policies/send-counter-limit/dist/index.js";
 
-// When published
-// import { bundledVincentPolicy } from '@lit-protocol/vincent-policy-greeting-limit';
-
-// Use local
-// import { bundledVincentPolicy } from "../../../../policies/send-limit/dist/generated/vincent-bundled-policy.js";
-
-import { createHelloWorldGreeting } from "./helpers/index";
 import {
   executeFailSchema,
   executeSuccessSchema,
@@ -21,21 +14,21 @@ import {
   toolParamsSchema,
 } from "./schemas";
 
-// const GreetingLimitPolicy = createVincentToolPolicy({
-//   toolParamsSchema,
-//   bundledVincentPolicy,
-//   toolParameterMappings: {
-//     message: 'message',
-//     recipient: 'recipient',
-//   },
-// });
+import { laUtils } from "@lit-protocol/vincent-scaffold-sdk";
+
+const SendLimitPolicy = createVincentToolPolicy({
+  toolParamsSchema,
+  bundledVincentPolicy,
+  toolParameterMappings: {
+    to: "to",
+    amount: "amount",
+  },
+});
 
 export const vincentTool = createVincentTool({
   packageName: "{{packageName}}" as const,
   toolParamsSchema,
-  supportedPolicies: supportedPoliciesForTool([
-    // GreetingLimitPolicy
-  ]),
+  supportedPolicies: supportedPoliciesForTool([SendLimitPolicy]),
 
   precheckSuccessSchema,
   precheckFailSchema,
@@ -44,73 +37,163 @@ export const vincentTool = createVincentTool({
   executeFailSchema,
 
   precheck: async ({ toolParams }, { succeed, fail }) => {
-    const { message, recipient } = toolParams;
+    console.log("[{{packageName}}/precheck]");
+    console.log("[{{packageName}}/precheck] params:", {
+      toolParams,
+    });
 
-    // Validate the message
-    if (!message || message.trim().length === 0) {
-      return fail({ error: "Message cannot be empty" });
+    const { to, amount } = toolParams;
+
+    // Basic validation without using ethers directly
+    if (!to || !to.startsWith("0x") || to.length !== 42) {
+      return fail({
+        error: "[{{packageName}}/precheck] Invalid recipient address format",
+      });
     }
 
-    if (message.length > 280) {
-      return fail({ error: "Message too long (maximum 280 characters)" });
+    // Validate the amount
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      return fail({
+        error:
+          "[{{packageName}}/precheck] Invalid amount format or amount must be greater than 0",
+      });
+    }
+
+    // Additional validation: check if amount is too large
+    const amountFloat = parseFloat(amount);
+    if (amountFloat > 1.0) {
+      return fail({
+        error:
+          "[{{packageName}}/precheck] Amount too large (maximum 1.0 ETH per transaction)",
+      });
     }
 
     // Precheck succeeded
-    return succeed({
-      messageValid: true,
-      recipientProvided: !!recipient,
-    });
+    const successResult = {
+      addressValid: true,
+      amountValid: true,
+    };
+
+    console.log("[{{packageName}}/precheck] Success result:", successResult);
+    const successResponse = succeed(successResult);
+    console.log(
+      "[NativeSendTool/precheck] Success response:",
+      JSON.stringify(successResponse, null, 2)
+    );
+    return successResponse;
   },
 
-  execute: async ({ toolParams }, { succeed, fail, policiesContext }) => {
+  execute: async (
+    { toolParams },
+    { succeed, fail, delegation, policiesContext }
+  ) => {
     try {
-      const { message, recipient } = toolParams;
+      const { to, amount } = toolParams;
 
-      console.log("Executing Hello World Tool", { message, recipient });
+      console.log("[{{packageName}}/execute] Executing Native Send Tool", {
+        to,
+        amount,
+      });
 
-      // Create the greeting using our helper function
-      const greeting = createHelloWorldGreeting(message, recipient);
+      // Get provider
+      const provider = await laUtils.chain.getYellowstoneProvider();
 
-      console.log("Tool execution successful", { greeting });
+      // Get PKP public key from delegation context
+      const pkpPublicKey = delegation.delegatorPkpInfo.publicKey;
+      if (!pkpPublicKey) {
+        throw new Error("PKP public key not available from delegation context");
+      }
 
-      let policyCommitResult: string | undefined;
+      // Execute the native send
+      const txHash = await laUtils.transaction.handler.nativeSend({
+        provider,
+        pkpPublicKey,
+        amount,
+        to,
+      });
 
-      // // Check if greeting limit policy is enabled and commit if so
-      // const greetingLimitPolicyContext =
-      //   policiesContext.allowedPolicies['@lit-protocol/vincent-policy-greeting-limit'];
+      console.log("[{{packageName}}/execute] Native send successful", {
+        txHash,
+        to,
+        amount,
+      });
 
-      // if (greetingLimitPolicyContext !== undefined) {
-      //   const { currentCount, maxGreetings, remainingGreetings } = greetingLimitPolicyContext.result;
+      // Manually call policy commit function using the correct pattern
+      console.log(
+        "[{{packageName}}/execute] Manually calling policy commit function..."
+      );
 
-      //   const commitResult = await greetingLimitPolicyContext.commit({
-      //     currentCount,
-      //     maxGreetings,
-      //     remainingGreetings,
-      //   });
+      try {
+        // Use the correct pattern from the reference code
+        const sendLimitPolicyContext =
+          policiesContext.allowedPolicies[
+            "@agentic-ai/vincent-policy-send-counter-limit"
+          ];
 
-      //   console.log('Greeting limit policy commit result', JSON.stringify(commitResult));
+        if (
+          sendLimitPolicyContext &&
+          sendLimitPolicyContext.commit &&
+          sendLimitPolicyContext.result
+        ) {
+          console.log(
+            "[{{packageName}}/execute] ✅ Found send limit policy context, calling commit..."
+          );
+          console.log(
+            "[{{packageName}}/execute] ✅ Policy evaluation result:",
+            sendLimitPolicyContext.result
+          );
 
-      //   if (commitResult.allow) {
-      //     policyCommitResult = `Greeting recorded. ${commitResult.result.remainingGreetings} greetings remaining.`;
-      //   } else {
-      //     return fail(
-      //       commitResult.error ?? 'Unknown error occurred while committing greeting limit policy',
-      //     );
-      //   }
+          // Extract the commit parameters from the policy evaluation results
+          const { currentCount, maxSends, remainingSends, timeWindowSeconds } =
+            sendLimitPolicyContext.result;
+          const commitParams = {
+            currentCount,
+            maxSends,
+            remainingSends,
+            timeWindowSeconds,
+          };
 
-      //   console.log(
-      //     `Committed greeting limit policy. New count: ${commitResult.result.newCount} (HelloWorldToolExecute)`,
-      //   );
-      // }
+          console.log(
+            "[{{packageName}}/execute] ✅ Available in sendLimitPolicyContext:",
+            Object.keys(sendLimitPolicyContext)
+          );
+          console.log(
+            "[{{packageName}}/execute] ✅ Calling commit with explicit parameters (ignoring TS signature)..."
+          );
+
+          const commitResult = await sendLimitPolicyContext.commit(
+            // @ts-ignore - TypeScript signature is wrong, framework actually expects parameters
+            commitParams
+          );
+          console.log(
+            "[{{packageName}}/execute] ✅ Policy commit result:",
+            commitResult
+          );
+        } else {
+          console.log(
+            "[{{packageName}}/execute] ❌ Send limit policy context not found in policiesContext.allowedPolicies"
+          );
+          console.log(
+            "[{{packageName}}/execute] ❌ Available policies:",
+            Object.keys(policiesContext.allowedPolicies || {})
+          );
+        }
+      } catch (commitError) {
+        console.error(
+          "[{{packageName}}/execute] ❌ Error calling policy commit:",
+          commitError
+        );
+        // Don't fail the transaction if commit fails
+      }
 
       return succeed({
-        greeting,
+        txHash,
+        to,
+        amount,
         timestamp: Date.now(),
-        messageLength: message.length,
-        policyCommitResult,
       });
     } catch (error) {
-      console.error("Tool execution failed", error);
+      console.error("[{{packageName}}/execute] Native send failed", error);
 
       return fail({
         error:

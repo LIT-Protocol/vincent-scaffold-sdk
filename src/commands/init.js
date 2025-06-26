@@ -12,6 +12,45 @@ const {
   validateTemplateType,
 } = require("../template-loader");
 
+// Default names for initial tool and policy
+const DEFAULT_TOOL_NAME = "native-send";
+const DEFAULT_TOOL_CAMEL_CASE_NAME = "nativeSend";
+
+const DEFAULT_POLICY_NAME = "send-counter-limit";
+const DEFAULT_POLICY_CAMEL_CASE_NAME = "sendCounterLimit";
+
+// File names configuration
+const FILE_NAMES = {
+  e2eStateFile: ".e2e-state.json",
+};
+
+// Package configuration - version and installation behavior
+const PACKAGES_CONFIG = {
+  tsx: { version: "4.0.0", behavior: "onlyIfMissing" },
+  "dotenv-cli": { version: "8.0.0", behavior: "onlyIfMissing" },
+  viem: { version: "2.31.4", behavior: "always" },
+  chalk: { version: "4.1.2", behavior: "always" },
+  "@lit-protocol/vincent-app-sdk": { version: "*", behavior: "always" },
+  "@lit-protocol/vincent-scaffold-sdk": { version: "*", behavior: "always" },
+  "@ansonhkg/abi-extractor": { version: "1.1.0", behavior: "always" },
+};
+
+// Scripts configuration - complete scripts object that can be rendered
+const SCRIPTS_CONFIG = {
+  "vincent:build": (config) =>
+    `dotenv -e .env -- sh -c 'cd vincent-packages/policies/${DEFAULT_POLICY_NAME} && npm install && npm run build && cd ../../tools/${DEFAULT_TOOL_NAME} && npm install && npm run build'`,
+  "vincent:e2e": (config) => `dotenv -e .env -- tsx ${config.e2ePath}`,
+  "vincent:reset": (config) => `rm -f ${FILE_NAMES.e2eStateFile}`,
+  "vincent:forge:check": (config) =>
+    `sh -c 'if command -v forge >/dev/null 2>&1; then echo \"✅ Foundry is available\"; else echo \"❌ Foundry (forge) is not installed. Install it from https://getfoundry.sh/\"; exit 1; fi'`,
+  "vincent:forge:init": (config) =>
+    `dotenv -e .env -- sh -c 'npm run vincent:forge:check && forge init ./vincent-policy-contracts/counter && cd ./vincent-policy-contracts/counter && forge build && forge script script/Counter.s.sol --rpc-url https://yellowstone-rpc.litprotocol.com --broadcast --private-key $TEST_FUNDER_PRIVATE_KEY' && npm run vincent:gen-abi`,
+  "vincent:forge:deploy": (config) =>
+    `dotenv -e .env -- sh -c 'cd ./vincent-policy-contracts/counter && forge script script/Counter.s.sol --rpc-url https://yellowstone-rpc.litprotocol.com --broadcast --private-key $TEST_FUNDER_PRIVATE_KEY' && npm run vincent:gen-abi`,
+  "vincent:gen-abi": (config) =>
+    `cd ./vincent-policy-contracts/counter && npx forge-to-signature Counter.s.sol 175188 ./generated -n counterSignatures`,
+};
+
 /**
  * Copy directory recursively
  */
@@ -140,42 +179,38 @@ function createOrUpdatePackageJson(e2eDirectory = "./vincent-e2e") {
       console.log(chalk.cyan("📦 Creating package.json..."));
     }
 
-    // Add or merge scripts
+    // Add or merge scripts using SCRIPTS_CONFIG
     packageJson.scripts = packageJson.scripts || {};
-    packageJson.scripts["vincent:build"] =
-      "dotenv -e .env -- sh -c 'cd vincent-packages/tools/hello-world && npm install && npm run build && cd ../../policies/greeting-limit && npm install && npm run build'";
 
-    // Use the custom e2e directory in the script
+    // Prepare configuration context for script generation
     const e2ePath = path
       .join(e2eDirectory, "src", "e2e.ts")
       .replace(/\\/g, "/");
-    packageJson.scripts["vincent:e2e"] = `dotenv -e .env -- tsx ${e2ePath}`;
-    packageJson.scripts["vincent:reset"] = `rm -f .e2e-state.json`;
-    packageJson.scripts[
-      "vincent:forge:check"
-    ] = `sh -c 'if command -v forge >/dev/null 2>&1; then echo \"✅ Foundry is available\"; else echo \"❌ Foundry (forge) is not installed. Install it from https://getfoundry.sh/\"; exit 1; fi'`;
-    packageJson.scripts[
-      "vincent:forge:init"
-    ] = `dotenv -e .env -- sh -c 'npm run vincent:forge:check && forge init ./vincent-policy-contracts/counter && cd ./vincent-policy-contracts/counter && forge build && forge script script/Counter.s.sol --rpc-url https://yellowstone-rpc.litprotocol.com --broadcast --private-key $TEST_FUNDER_PRIVATE_KEY' && npm run vincent:gen-abi`;
-    packageJson.scripts[
-      "vincent:gen-abi"
-    ] = `cd ./vincent-policy-contracts/counter && npx forge-to-signature Counter.s.sol 175188 ./generated -n counterSignatures`;
-    // Add devDependencies for e2e if needed
+
+    const scriptConfig = {
+      e2ePath,
+      e2eDirectory,
+    };
+
+    // Render all scripts from configuration
+    for (const [scriptName, scriptFunction] of Object.entries(SCRIPTS_CONFIG)) {
+      packageJson.scripts[scriptName] = scriptFunction(scriptConfig);
+    }
+    // Add devDependencies using PACKAGES_CONFIG
     packageJson.devDependencies = packageJson.devDependencies || {};
-    if (!packageJson.devDependencies.tsx) {
-      packageJson.devDependencies.tsx = "4.0.0";
-    }
-    if (!packageJson.devDependencies["dotenv-cli"]) {
-      packageJson.devDependencies["dotenv-cli"] = "8.0.0";
-    }
 
-    packageJson.devDependencies.viem = "2.31.4";
-    packageJson.devDependencies.chalk = "4.1.2";
-
-    // Add dependencies
-    packageJson.devDependencies["@lit-protocol/vincent-app-sdk"] = "*";
-    packageJson.devDependencies["@lit-protocol/vincent-scaffold-sdk"] = "*";
-    packageJson.devDependencies["@ansonhkg/abi-extractor"] = "1.1.0";
+    // Process packages according to their behavior configuration
+    for (const [packageName, config] of Object.entries(PACKAGES_CONFIG)) {
+      if (config.behavior === "onlyIfMissing") {
+        // Only add if not already present
+        if (!packageJson.devDependencies[packageName]) {
+          packageJson.devDependencies[packageName] = config.version;
+        }
+      } else if (config.behavior === "always") {
+        // Always set/update the version
+        packageJson.devDependencies[packageName] = config.version;
+      }
+    }
 
     // Write package.json
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
@@ -353,45 +388,48 @@ async function initProject() {
   console.log(chalk.cyan("\n📦 Creating default examples..."));
 
   try {
-    // Create default hello-world tool
-    const defaultToolDir = path.resolve(config.toolsDirectory, "hello-world");
+    // Create default tool
+    const defaultToolDir = path.resolve(
+      config.toolsDirectory,
+      DEFAULT_TOOL_NAME
+    );
     if (!fs.existsSync(defaultToolDir)) {
       const vincentConfig = JSON.parse(
         fs.readFileSync(path.resolve("vincent.json"), "utf8")
       );
       const toolPrefix = vincentConfig.package.toolPrefix;
-      const toolPackageName = `${vincentConfig.package.namespace}/${toolPrefix}hello-world`;
+      const toolPackageName = `${vincentConfig.package.namespace}/${toolPrefix}${DEFAULT_TOOL_NAME}`;
 
       const toolVariables = {
-        name: "hello-world",
+        name: DEFAULT_TOOL_NAME,
         type: "tool",
         namespace: vincentConfig.package.namespace,
         packageName: toolPackageName,
-        camelCaseName: "helloWorld",
+        camelCaseName: DEFAULT_TOOL_CAMEL_CASE_NAME,
       };
 
       createProjectFromTemplate("tool", defaultToolDir, toolVariables);
       console.log(chalk.green(`✅ Created default tool: ${toolPackageName}`));
     }
 
-    // Create default greeting-limit policy
+    // Create default policy
     const defaultPolicyDir = path.resolve(
       config.policiesDirectory,
-      "greeting-limit"
+      DEFAULT_POLICY_NAME
     );
     if (!fs.existsSync(defaultPolicyDir)) {
       const vincentConfig = JSON.parse(
         fs.readFileSync(path.resolve("vincent.json"), "utf8")
       );
       const policyPrefix = vincentConfig.package.policyPrefix;
-      const policyPackageName = `${vincentConfig.package.namespace}/${policyPrefix}greeting-limit`;
+      const policyPackageName = `${vincentConfig.package.namespace}/${policyPrefix}${DEFAULT_POLICY_NAME}`;
 
       const policyVariables = {
-        name: "greeting-limit",
+        name: DEFAULT_POLICY_NAME,
         type: "policy",
         namespace: vincentConfig.package.namespace,
         packageName: policyPackageName,
-        camelCaseName: "greetingLimit",
+        camelCaseName: DEFAULT_POLICY_CAMEL_CASE_NAME,
       };
 
       createProjectFromTemplate("policy", defaultPolicyDir, policyVariables);
@@ -418,8 +456,12 @@ async function initProject() {
 
   console.log(chalk.cyan("\n🎉 Vincent development environment initialised!"));
   console.log(chalk.gray("Default examples created:"));
-  console.log(chalk.gray("• hello-world tool - A simple greeting tool"));
-  console.log(chalk.gray("• greeting-limit policy - Limits daily greetings"));
+  console.log(
+    chalk.gray(`• ${DEFAULT_TOOL_NAME} tool - A simple greeting tool`)
+  );
+  console.log(
+    chalk.gray(`• ${DEFAULT_POLICY_NAME} policy - Limits daily greetings`)
+  );
   console.log(
     chalk.gray("• e2e testing framework - End-to-end testing utilities")
   );
@@ -429,7 +471,7 @@ async function initProject() {
   );
   console.log(chalk.gray("2. Run npm install to install dependencies"));
   console.log(
-    chalk.gray("3. Run npm run vincent:build to build the default examples")
+    chalk.gray("3. Run npm run vincent:dev to build the default examples")
   );
   console.log(
     chalk.gray("4. Run npm run vincent:e2e to test your Vincent projects")

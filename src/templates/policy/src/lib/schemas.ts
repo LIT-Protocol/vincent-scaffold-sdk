@@ -4,16 +4,16 @@ import { z } from "zod";
  * Tool parameters schema - matches the tool this policy works with
  */
 export const toolParamsSchema = z.object({
-  message: z.string().min(1, "Message cannot be empty"),
-  recipient: z.string().optional(),
+  to: z.string().min(1, "Recipient address cannot be empty"),
+  amount: z.string().min(1, "Amount cannot be empty"),
 });
 
 /**
  * User parameters schema - policy configuration set by the user
  */
 export const userParamsSchema = z.object({
-  maxGreetings: z.number().min(1).max(100).default(10),
-  timeWindowHours: z.number().min(1).max(168).default(24), // up to 1 week
+  maxSends: z.bigint().min(1n).max(100n).default(2n),
+  timeWindowSeconds: z.bigint().min(1n).max(604800n).default(10n), // Default to 10 seconds for testing
 });
 
 /**
@@ -21,8 +21,9 @@ export const userParamsSchema = z.object({
  */
 export const commitParamsSchema = z.object({
   currentCount: z.number(),
-  maxGreetings: z.number(),
-  remainingGreetings: z.number(),
+  maxSends: z.number(),
+  remainingSends: z.number(),
+  timeWindowSeconds: z.number(),
 });
 
 /**
@@ -30,8 +31,9 @@ export const commitParamsSchema = z.object({
  */
 export const precheckAllowResultSchema = z.object({
   currentCount: z.number(),
-  maxGreetings: z.number(),
-  remainingGreetings: z.number(),
+  maxSends: z.number(),
+  remainingSends: z.number(),
+  timeWindowSeconds: z.number(),
 });
 
 /**
@@ -40,8 +42,8 @@ export const precheckAllowResultSchema = z.object({
 export const precheckDenyResultSchema = z.object({
   reason: z.string(),
   currentCount: z.number(),
-  maxGreetings: z.number(),
-  resetTime: z.number(),
+  maxSends: z.number(),
+  secondsUntilReset: z.number(),
 });
 
 /**
@@ -49,8 +51,9 @@ export const precheckDenyResultSchema = z.object({
  */
 export const evalAllowResultSchema = z.object({
   currentCount: z.number(),
-  maxGreetings: z.number(),
-  remainingGreetings: z.number(),
+  maxSends: z.number(),
+  remainingSends: z.number(),
+  timeWindowSeconds: z.number(),
 });
 
 /**
@@ -59,8 +62,9 @@ export const evalAllowResultSchema = z.object({
 export const evalDenyResultSchema = z.object({
   reason: z.string(),
   currentCount: z.number(),
-  maxGreetings: z.number(),
-  resetTime: z.number(),
+  maxSends: z.number(),
+  secondsUntilReset: z.number(),
+  timeWindowSeconds: z.number(),
 });
 
 /**
@@ -69,7 +73,7 @@ export const evalDenyResultSchema = z.object({
 export const commitAllowResultSchema = z.object({
   recorded: z.boolean(),
   newCount: z.number(),
-  remainingGreetings: z.number(),
+  remainingSends: z.number(),
 });
 
 /**

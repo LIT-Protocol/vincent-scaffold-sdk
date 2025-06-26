@@ -96,8 +96,10 @@ const setupFunderWallet = async (
   });
   console.log("   ↳ Balance:", formatEther(funderBalance));
 
-  if (funderBalance < parseEther("1")) {
-    throw new Error("❌ Funder balance is less than 1");
+  if (funderBalance < parseEther("0.13")) {
+    const errorMessage = `❌ Insufficient funder balance. Current balance is below the required 0.13 threshold. Please top up your funder wallet at: https://chronicle-yellowstone-faucet.getlit.dev/`;
+    console.log(errorMessage);
+    throw new Error(errorMessage);
   }
 
   return funderWalletViemWalletClient;
@@ -108,7 +110,8 @@ const setupAccountManagers = async (
   funderWalletViemWalletClient: ReturnType<typeof createWalletClient>,
   publicViemClientManager: PublicViemClientManager,
   network: "datil" | "datil-test" | "datil-dev",
-  fundAmount: bigint
+  appManagerFundAmount: bigint,
+  agentWalletPkpOwnerFundAmount: bigint
 ) => {
   const appManagerAccount = await setupAccount(
     "appManager",
@@ -117,7 +120,7 @@ const setupAccountManagers = async (
     stateManager,
     funderWalletViemWalletClient,
     publicViemClientManager.yellowstone,
-    fundAmount
+    appManagerFundAmount
   );
 
   const appManagerViemWalletClient = createWalletClient({
@@ -133,7 +136,7 @@ const setupAccountManagers = async (
     stateManager,
     funderWalletViemWalletClient,
     publicViemClientManager.yellowstone,
-    fundAmount
+    agentWalletPkpOwnerFundAmount
   );
 
   const agentWalletPkpOwnerViemWalletClient = createWalletClient({
@@ -171,7 +174,7 @@ const setupDelegateeWallet = async (
   stateManager: StateManager,
   funderWalletViemWalletClient: ReturnType<typeof createWalletClient>,
   publicViemClientManager: PublicViemClientManager,
-  fundAmount: bigint
+  delegateeFundAmount: bigint
 ) => {
   const delegateeAccount = await setupAccount(
     "appDelegatee",
@@ -180,7 +183,7 @@ const setupDelegateeWallet = async (
     stateManager,
     funderWalletViemWalletClient,
     publicViemClientManager.yellowstone,
-    fundAmount
+    delegateeFundAmount
   );
 
   const yellowstoneProvider = new ethers.providers.JsonRpcProvider(
@@ -198,13 +201,27 @@ const setupDelegateeWallet = async (
 export const init = async ({
   network,
   fundAmount = "0.01",
+  fundingAmounts,
   deploymentStatus = "dev",
 }: {
   network: "datil" | "datil-test" | "datil-dev";
   fundAmount?: string;
+  fundingAmounts?: {
+    appManager?: string;
+    agentWalletPkpOwner?: string;
+    delegatee?: string;
+    pkp?: string;
+  };
   deploymentStatus?: "dev" | "staging" | "production";
 }): Promise<InitResult> => {
-  const _fundAmount = parseEther(fundAmount);
+  const _fundingAmounts = {
+    appManager: parseEther(fundingAmounts?.appManager || "0.001"),
+    agentWalletPkpOwner: parseEther(
+      fundingAmounts?.agentWalletPkpOwner || "0.01"
+    ),
+    delegatee: parseEther(fundingAmounts?.delegatee || "0.001"),
+    pkp: parseEther(fundingAmounts?.pkp || "0.001"),
+  };
 
   const _deploymentStatus =
     STATUS_TO_DEPLOYMENT_STATUS[
@@ -243,7 +260,8 @@ export const init = async ({
     funderWalletViemWalletClient,
     publicViemClientManager,
     network,
-    _fundAmount
+    _fundingAmounts.appManager,
+    _fundingAmounts.agentWalletPkpOwner
   );
 
   const { delegateeAccount, delegateeEthersWallet } =
@@ -251,7 +269,7 @@ export const init = async ({
       stateManager,
       funderWalletViemWalletClient,
       publicViemClientManager,
-      _fundAmount
+      _fundingAmounts.delegatee
     );
 
   /**
@@ -308,7 +326,7 @@ export const init = async ({
       isNew,
       funderWalletViemWalletClient,
       publicViemClientManager.yellowstone,
-      _fundAmount
+      _fundingAmounts.pkp
     );
 
     // Save state after PKP operations

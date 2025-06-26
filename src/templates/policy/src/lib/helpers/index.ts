@@ -1,111 +1,143 @@
 /**
- * Helper functions for the {{name}} policy
- * Simulates smart contract interactions for greeting limits
+ * Helper functions for the send-counter-limit policy
+ * Integrates with the Counter smart contract to track send limits
  */
 
-// Mock greeting contract state - simulates on-chain data
-// In real implementation, this would be read from a smart contract
-const now = Date.now();
-const oneHourAgo = now - 1 * 60 * 60 * 1000;
-const twoHoursAgo = now - 2 * 60 * 60 * 1000;
-const sixHoursAgo = now - 6 * 60 * 60 * 1000;
-const twelveHoursAgo = now - 12 * 60 * 60 * 1000;
-const twentyHoursAgo = now - 20 * 60 * 60 * 1000;
-
-const greetingStore: Record<string, Array<{ timestamp: number; data: any }>> = {
-  // User near limit (8/10 greetings in last 24 hours)
-  "0x1234567890123456789012345678901234567890": [
-    { timestamp: oneHourAgo, data: { message: "Hello world!", appId: 1 } },
-    { timestamp: twoHoursAgo, data: { message: "Good morning!", appId: 1 } },
-    { timestamp: sixHoursAgo, data: { message: "Hi there!", appId: 1 } },
-    { timestamp: twelveHoursAgo, data: { message: "Hey!", appId: 1 } },
-    {
-      timestamp: twelveHoursAgo + 1000,
-      data: { message: "Greetings!", appId: 1 },
-    },
-    { timestamp: twentyHoursAgo, data: { message: "Welcome!", appId: 1 } },
-    {
-      timestamp: twentyHoursAgo + 1000,
-      data: { message: "Salutations!", appId: 1 },
-    },
-    {
-      timestamp: twentyHoursAgo + 2000,
-      data: { message: "Nice to meet you!", appId: 1 },
-    },
-  ],
-
-  // User over limit (12/10 greetings in last 24 hours)
-  "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd": [
-    { timestamp: oneHourAgo, data: { message: "Hello!", appId: 2 } },
-    { timestamp: oneHourAgo + 1000, data: { message: "Hi!", appId: 2 } },
-    { timestamp: twoHoursAgo, data: { message: "Hey!", appId: 2 } },
-    { timestamp: twoHoursAgo + 1000, data: { message: "Howdy!", appId: 2 } },
-    { timestamp: sixHoursAgo, data: { message: "Greetings!", appId: 2 } },
-    {
-      timestamp: sixHoursAgo + 1000,
-      data: { message: "Salutations!", appId: 2 },
-    },
-    { timestamp: twelveHoursAgo, data: { message: "Good day!", appId: 2 } },
-    {
-      timestamp: twelveHoursAgo + 1000,
-      data: { message: "Welcome!", appId: 2 },
-    },
-    {
-      timestamp: twentyHoursAgo,
-      data: { message: "Nice to see you!", appId: 2 },
-    },
-    {
-      timestamp: twentyHoursAgo + 1000,
-      data: { message: "Good to meet you!", appId: 2 },
-    },
-    {
-      timestamp: twentyHoursAgo + 2000,
-      data: { message: "Pleasure!", appId: 2 },
-    },
-    {
-      timestamp: twentyHoursAgo + 3000,
-      data: { message: "Delighted!", appId: 2 },
-    },
-  ],
-
-  // User well under limit (2/10 greetings in last 24 hours)
-  "0x9999888877776666555544443333222211110000": [
-    { timestamp: sixHoursAgo, data: { message: "Hello there!", appId: 3 } },
-    { timestamp: twentyHoursAgo, data: { message: "Good morning!", appId: 3 } },
-  ],
-
-  // New user with no greeting history
-  "0xfeeddeadbeefcafebabefeeddeadbeefcafebabe": [],
-};
+import { ethers } from "ethers";
+import { counterSignatures } from "../abi/counterSignatures";
+import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
 /**
- * Check how many greetings a user has sent within the time window
- * Simulates a smart contract read call to get user's greeting count
- * @param userId - The user's address (PKP address)
- * @param timeWindowHours - The time window in hours to check
- * @returns The number of greetings within the time window
+ * Check how many sends a user has made and if they can send again
+ * @param userAddress - The user's address (PKP address)
+ * @param maxSends - Maximum number of sends allowed
+ * @param timeWindowSeconds - Time window in seconds before reset
+ * @returns Send limit status and timing information
  */
-export async function checkGreetingLimit(
-  userId: string,
-  timeWindowHours: number
-): Promise<number> {
-  // Simulate smart contract call delay
-  await new Promise((resolve) => setTimeout(resolve, 10));
+export async function checkSendLimit(
+  userAddress: string,
+  maxSends: number,
+  timeWindowSeconds: number
+): Promise<{
+  allowed: boolean;
+  currentCount: number;
+  remainingSends: number;
+  shouldReset?: boolean;
+  secondsUntilReset?: number;
+}> {
+  try {
+    // Create provider for contract calls
+    const provider = new ethers.providers.JsonRpcProvider(
+      "https://yellowstone-rpc.litprotocol.com/"
+    );
+    
+    // Create contract instance
+    const contract = new ethers.Contract(
+      counterSignatures.address,
+      [
+        counterSignatures.methods.counterByAddress,
+        counterSignatures.methods.lastIncrementTime,
+      ],
+      provider
+    );
 
-  const timeWindowMs = timeWindowHours * 60 * 60 * 1000;
-  const cutoffTime = Date.now() - timeWindowMs;
+    // Get current count and last increment time
+    const [currentCount, lastIncrementTime] = await Promise.all([
+      contract.counterByAddress(userAddress),
+      contract.lastIncrementTime(userAddress),
+    ]);
 
-  // Get user's greeting history from mock contract state
-  const userGreetings = greetingStore[userId] || [];
+    const currentCountNum = currentCount.toNumber();
+    const lastIncrementTimeNum = lastIncrementTime.toNumber();
 
-  // Filter to only greetings within the time window
-  const recentGreetings = userGreetings.filter(
-    (greeting) => greeting.timestamp > cutoffTime
-  );
+    console.log(
+      `Send limit check for ${userAddress}: ${currentCountNum} sends, last at ${lastIncrementTimeNum}`
+    );
 
-  console.log(
-    `Greeting limit check for ${userId}: ${recentGreetings.length} greetings in last ${timeWindowHours} hours`
-  );
+    // If user has never sent before, they're allowed
+    if (lastIncrementTimeNum === 0) {
+      return {
+        allowed: true,
+        currentCount: currentCountNum,
+        remainingSends: maxSends - currentCountNum,
+      };
+    }
 
-  return recentGreetings.length;
+    // Check if enough time has passed since last send
+    const currentTime = Math.floor(Date.now() / 1000); // Convert to seconds
+    const timeSinceLastSend = currentTime - lastIncrementTimeNum;
+    const timeWindowElapsed = timeSinceLastSend >= timeWindowSeconds;
+
+    // If time window has elapsed, user can send again (count effectively resets)
+    if (timeWindowElapsed) {
+      console.log(`Time window elapsed for ${userAddress}, allowing
+     send (count will reset on next commit)`);
+      return {
+        allowed: true,
+        currentCount: 0, // Will be reset on next commit
+        remainingSends: maxSends,
+        shouldReset: true, // Flag to indicate reset is needed
+      };
+    }
+
+    // Time window hasn't elapsed, check if under limit
+    if (currentCountNum < maxSends) {
+      return {
+        allowed: true,
+        currentCount: currentCountNum,
+        remainingSends: maxSends - currentCountNum,
+      };
+    }
+
+    // User has hit limit and time window hasn't elapsed
+    const secondsUntilReset = timeWindowSeconds - timeSinceLastSend;
+    return {
+      allowed: false,
+      currentCount: currentCountNum,
+      remainingSends: 0,
+      secondsUntilReset: Math.max(0, secondsUntilReset),
+    };
+  } catch (error) {
+    console.error("Error checking send limit:", error);
+    throw error;
+  }
+}
+
+/**
+   * Reset the send counter for a user by calling reset on the 
+  contract
+   * @param userAddress - The user's address (PKP address)
+   * @param pkpPublicKey - The PKP public key for signing
+   */
+export async function resetSendCounter(
+  userAddress: string,
+  pkpPublicKey: string
+): Promise<string> {
+  console.log(`Resetting send counter for ${userAddress} on 
+  contract ${counterSignatures.address}`);
+
+  try {
+    const provider = new ethers.providers.JsonRpcProvider(
+      "https://yellowstone-rpc.litprotocol.com/"
+    );
+
+    const txHash = await laUtils.transaction.handler.contractCall({
+      provider,
+      pkpPublicKey,
+      callerAddress: userAddress,
+      abi: [counterSignatures.methods.reset],
+      contractAddress: counterSignatures.address,
+      functionName: "reset",
+      args: [],
+      overrides: {
+        gasLimit: 100000,
+      },
+    });
+
+    console.log(`Reset successful - TxHash: ${txHash}`);
+    return txHash;
+  } catch (error) {
+    console.error("Error resetting send counter:", error);
+    throw error;
+  }
 }

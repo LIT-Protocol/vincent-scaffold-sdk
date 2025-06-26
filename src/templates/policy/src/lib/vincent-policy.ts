@@ -1,5 +1,5 @@
 import { createVincentPolicy } from "@lit-protocol/vincent-tool-sdk";
-import { checkGreetingLimit } from "./helpers/index";
+import { checkSendLimit, resetSendCounter } from "./helpers/index";
 import {
   commitAllowResultSchema,
   commitDenyResultSchema,
@@ -11,6 +11,8 @@ import {
   toolParamsSchema,
   userParamsSchema,
 } from "./schemas";
+import { counterSignatures } from "./abi/counterSignatures";
+import { laUtils } from "@lit-protocol/vincent-scaffold-sdk";
 
 export const vincentPolicy = createVincentPolicy({
   packageName: "{{packageName}}" as const,
@@ -32,47 +34,112 @@ export const vincentPolicy = createVincentPolicy({
     { toolParams, userParams },
     { allow, deny, appId, delegation: { delegatorPkpInfo } }
   ) => {
-    console.log("Prechecking greeting limit policy", {
+    console.log("[{{packageName}}/precheck] 🔍 POLICY PRECHECK CALLED");
+    console.log("[{{packageName}}/precheck] 🔍 Policy precheck params:", {
       toolParams,
       userParams,
+      ethAddress: delegatorPkpInfo.ethAddress,
+      appId,
     });
 
-    // const { message, recipient } = toolParams;
-    const { maxGreetings = 10, timeWindowHours = 24 } = userParams;
+    // Only use what we actually need - no defaults in policy logic
+    const { maxSends, timeWindowSeconds } = userParams;
     const { ethAddress } = delegatorPkpInfo;
 
     try {
-      // Check current greeting count for the user
-      const currentCount = await checkGreetingLimit(
+      // Convert BigInt to number for helper function
+      const maxSendsNum = Number(maxSends);
+      const timeWindowSecondsNum = Number(timeWindowSeconds);
+
+      // Check current send limit for the user
+      const limitCheck = await checkSendLimit(
         ethAddress,
-        timeWindowHours
+        maxSendsNum,
+        timeWindowSecondsNum
       );
 
-      if (currentCount >= maxGreetings) {
-        const resetTime = Date.now() + timeWindowHours * 60 * 60 * 1000;
+      if (!limitCheck.allowed) {
+        const denyResult = {
+          reason: `Send limit exceeded. Maximum ${Number(
+            maxSends
+          )} sends per ${Number(timeWindowSeconds)} seconds. Try again in ${
+            limitCheck.secondsUntilReset
+          } seconds.`,
+          currentCount: limitCheck.currentCount,
+          maxSends: Number(maxSends),
+          secondsUntilReset: limitCheck.secondsUntilReset || 0,
+        };
 
-        return deny({
-          reason: `Greeting limit exceeded. Maximum ${maxGreetings} greetings per ${timeWindowHours} hours.`,
-          currentCount,
-          maxGreetings,
-          resetTime,
-        });
+        console.log(
+          "[{{packageName}}/precheck] 🚫 POLICY PRECHECK DENYING REQUEST:"
+        );
+        console.log(
+          "[{{packageName}}/precheck] 🚫 Deny result:",
+          JSON.stringify(denyResult, null, 2)
+        );
+        console.log(
+          "[{{packageName}}/precheck] 🚫 Current count:",
+          limitCheck.currentCount
+        );
+        console.log(
+          "[{{packageName}}/precheck] 🚫 Max sends:",
+          Number(maxSends)
+        );
+        console.log(
+          "[{{packageName}}/precheck] 🚫 Limit check result:",
+          JSON.stringify(limitCheck, null, 2)
+        );
+        console.log(
+          "[{{packageName}}/precheck] 🚫 About to call deny() function..."
+        );
+
+        const denyResponse = deny(denyResult);
+        console.log(
+          "[{{packageName}}/precheck] 🚫 POLICY PRECHECK DENY RESPONSE:",
+          JSON.stringify(denyResponse, null, 2)
+        );
+        return denyResponse;
       }
 
-      return allow({
-        currentCount,
-        maxGreetings,
-        remainingGreetings: maxGreetings - currentCount,
-      });
+      const allowResult = {
+        currentCount: limitCheck.currentCount,
+        maxSends: Number(maxSends),
+        remainingSends: limitCheck.remainingSends,
+        timeWindowSeconds: Number(timeWindowSeconds),
+      };
+
+      console.log(
+        "[SendLimitPolicy/precheck] ✅ POLICY PRECHECK ALLOWING REQUEST:"
+      );
+      console.log(
+        "[SendLimitPolicy/precheck] ✅ Allow result:",
+        JSON.stringify(allowResult, null, 2)
+      );
+      console.log(
+        "[SendLimitPolicy/precheck] ✅ Current count:",
+        limitCheck.currentCount
+      );
+      console.log("[SendLimitPolicy/precheck] ✅ Max sends:", Number(maxSends));
+      console.log(
+        "[SendLimitPolicy/precheck] ✅ Remaining sends:",
+        limitCheck.remainingSends
+      );
+
+      const allowResponse = allow(allowResult);
+      console.log(
+        "[SendLimitPolicy/precheck] ✅ POLICY PRECHECK ALLOW RESPONSE:",
+        JSON.stringify(allowResponse, null, 2)
+      );
+      return allowResponse;
     } catch (error) {
-      console.error("Error in precheck:", error);
+      console.error("[SendLimitPolicy/precheck] Error in precheck:", error);
       return deny({
         reason: `Policy error: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
         currentCount: 0,
-        maxGreetings,
-        resetTime: 0,
+        maxSends: Number(maxSends),
+        secondsUntilReset: 0,
       });
     }
   },
@@ -81,28 +148,32 @@ export const vincentPolicy = createVincentPolicy({
     { toolParams, userParams },
     { allow, deny, appId, delegation: { delegatorPkpInfo } }
   ) => {
-    console.log("Evaluating greeting limit policy", { toolParams, userParams });
+    console.log("[{{packageName}}/evaluate] Evaluating send limit policy", {
+      toolParams,
+      userParams,
+    });
 
-    // const { message, recipient } = toolParams;
-    const { maxGreetings = 10, timeWindowHours = 24 } = userParams;
+    // Only use what we actually need - no defaults in policy logic
+    const { maxSends, timeWindowSeconds } = userParams;
     const { ethAddress } = delegatorPkpInfo;
 
-    const checkGreetingResponse = await Lit.Actions.runOnce(
-      { waitForResponse: true, name: "checkGreetingLimit" },
+    const checkSendResponse = await Lit.Actions.runOnce(
+      { waitForResponse: true, name: "checkSendLimit" },
       async () => {
         try {
-          const currentCount = await checkGreetingLimit(
+          // Convert BigInt to number for helper function
+          const maxSendsNum = Number(maxSends);
+          const timeWindowSecondsNum = Number(timeWindowSeconds);
+
+          const limitCheck = await checkSendLimit(
             ethAddress,
-            timeWindowHours
+            maxSendsNum,
+            timeWindowSecondsNum
           );
-          const resetTime = Date.now() + timeWindowHours * 60 * 60 * 1000;
 
           return JSON.stringify({
             status: "success",
-            currentCount,
-            maxGreetings,
-            resetTime,
-            remainingGreetings: maxGreetings - currentCount,
+            ...limitCheck,
           });
         } catch (error) {
           return JSON.stringify({
@@ -113,62 +184,129 @@ export const vincentPolicy = createVincentPolicy({
       }
     );
 
-    const parsedResponse = JSON.parse(checkGreetingResponse);
+    const parsedResponse = JSON.parse(checkSendResponse);
     if (parsedResponse.status === "error") {
       return deny({
-        reason: `Error checking greeting limit: ${parsedResponse.error} (evaluate)`,
+        reason: `Error checking send limit: ${parsedResponse.error} (evaluate)`,
         currentCount: 0,
-        maxGreetings,
-        resetTime: 0,
+        maxSends: Number(maxSends),
+        secondsUntilReset: 0,
+        timeWindowSeconds: Number(timeWindowSeconds),
       });
     }
 
-    const { currentCount, resetTime, remainingGreetings } = parsedResponse;
+    const { allowed, currentCount, remainingSends, secondsUntilReset } =
+      parsedResponse;
 
-    if (currentCount >= maxGreetings) {
+    if (!allowed) {
       return deny({
-        reason: `Greeting limit exceeded during evaluation. Maximum ${maxGreetings} greetings per ${timeWindowHours} hours.`,
+        reason: `Send limit exceeded during evaluation. Maximum ${Number(
+          maxSends
+        )} sends per ${Number(
+          timeWindowSeconds
+        )} seconds. Try again in ${secondsUntilReset} seconds.`,
         currentCount,
-        maxGreetings,
-        resetTime,
+        maxSends: Number(maxSends),
+        secondsUntilReset: secondsUntilReset || 0,
       });
     }
 
-    console.log("Evaluated greeting limit policy", {
+    console.log("[{{packageName}}/evaluate] Evaluated send limit policy", {
       currentCount,
-      maxGreetings,
-      remainingGreetings,
+      maxSends,
+      remainingSends,
     });
 
     return allow({
       currentCount,
-      maxGreetings,
-      remainingGreetings,
+      maxSends: Number(maxSends),
+      remainingSends,
+      timeWindowSeconds: Number(timeWindowSeconds),
     });
   },
 
   commit: async (
-    { currentCount, maxGreetings },
+    { currentCount, maxSends, timeWindowSeconds },
     { allow, appId, delegation: { delegatorPkpInfo } }
   ) => {
     const { ethAddress } = delegatorPkpInfo;
 
-    // In a real implementation, this would record the greeting to a smart contract
-    // For this demo, we just simulate successful recording
-    console.log(
-      `Simulating greeting record for ${ethAddress} (appId: ${appId})`
+    console.log("[{{packageName}}/commit] 🚀 IM COMMITING!");
+
+    // Check if we need to reset the counter first
+    const checkResponse = await checkSendLimit(
+      ethAddress,
+      maxSends,
+      Number(timeWindowSeconds)
     );
 
-    console.log("Policy commit successful", {
-      ethAddress,
-      newCount: currentCount + 1,
-      maxGreetings,
-    });
+    if (checkResponse.shouldReset) {
+      console.log(
+        `[{{packageName}}/commit] Resetting counter for ${ethAddress} due to time 
+      window expiration`
+      );
+      try {
+        await resetSendCounter(ethAddress, delegatorPkpInfo.publicKey);
+        console.log(
+          `[{{packageName}}/commit] Counter reset successful for ${ethAddress}`
+        );
+      } catch (error) {
+        console.warn(`Counter reset failed for ${ethAddress}:`, error);
+        // Continue anyway, the counter will still work
+      }
+    }
 
-    return allow({
-      recorded: true,
-      newCount: currentCount + 1,
-      remainingGreetings: maxGreetings - currentCount - 1,
-    });
+    try {
+      // Record the send to the smart contract
+      console.log(
+        `[{{packageName}}/commit] Recording send to contract for ${ethAddress} (appId: ${appId})`
+      );
+
+      // Execute the contract call to increment the counter directly
+      console.log(
+        `[{{packageName}}/commit] Calling incrementByAddress(${ethAddress}) on contract ${counterSignatures.address}`
+      );
+
+      const provider = await laUtils.chain.getYellowstoneProvider();
+
+      // Call contract directly without Lit.Actions.runOnce wrapper
+      const txHash = await laUtils.transaction.handler.contractCall({
+        provider,
+        pkpPublicKey: delegatorPkpInfo.publicKey,
+        callerAddress: ethAddress,
+        abi: [counterSignatures.methods.increment],
+        contractAddress: counterSignatures.address,
+        functionName: "increment",
+        args: [],
+        overrides: {
+          gasLimit: 100000,
+        },
+      });
+
+      const newCount = currentCount + 1;
+      const remainingSends = Number(maxSends) - newCount;
+
+      console.log("[{{packageName}}/commit] Policy commit successful", {
+        ethAddress,
+        newCount,
+        maxSends,
+        remainingSends,
+        txHash,
+      });
+
+      return allow({
+        recorded: true,
+        newCount,
+        remainingSends: Math.max(0, remainingSends),
+      });
+    } catch (error) {
+      console.error("[{{packageName}}/commit] Error in commit phase:", error);
+      // Still return success since the transaction itself succeeded
+      return allow({
+        recorded: false,
+        newCount: currentCount + 1,
+        remainingSends: Math.max(0, Number(maxSends) - currentCount - 1),
+      });
+    }
   },
 });

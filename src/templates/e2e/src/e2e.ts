@@ -1,10 +1,17 @@
-import { getVincentToolClient } from "@lit-protocol/vincent-app-sdk";
-import { init } from "@lit-protocol/vincent-scaffold-sdk";
-import { PARAMETER_TYPE } from "@lit-protocol/vincent-scaffold-sdk/constants";
+import {
+  PARAMETER_TYPE,
+  createAppConfig,
+  init,
+  suppressLitLogs,
+} from "@lit-protocol/vincent-scaffold-sdk/e2e";
 
+// Apply log suppression FIRST, before any imports that might trigger logs
+suppressLitLogs(false);
+
+import { getVincentToolClient } from "@lit-protocol/vincent-app-sdk";
 // Tools and Policies that we wil be testing
-import { vincentPolicyMetadata as greetingLimitPolicyMetadata } from "../../vincent-packages/policies/greeting-limit/dist/src/index.js";
-import { bundledVincentTool as helloWorldTool } from "../../vincent-packages/tools/hello-world/dist/src/index.js";
+import { vincentPolicyMetadata as sendLimitPolicyMetadata } from "../../vincent-packages/policies/send-counter-limit/dist/index.js";
+import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/tools/native-send/dist/index.js";
 
 (async () => {
   /**
@@ -14,120 +21,136 @@ import { bundledVincentTool as helloWorldTool } from "../../vincent-packages/too
    */
   const { accounts, chainClient } = await init({
     network: "datil",
+    deploymentStatus: "dev"
   });
 
   /**
    * ====================================
-   * Prepare the tools and policies
+   * (🫵 You) Prepare the tools and policies
    * ====================================
    */
-  const helloWorldToolClient = getVincentToolClient({
-    bundledVincentTool: helloWorldTool,
+  const nativeSendToolClient = getVincentToolClient({
+    bundledVincentTool: nativeSendTool,
     ethersSigner: accounts.delegatee.ethersWallet,
   });
-
-  console.log("helloWorldToolClient:", helloWorldToolClient);
-  console.log("✅ [Tool CID]:", helloWorldTool.ipfsCid);
-
-  console.log("greetingLimitPolicyMetadata:", greetingLimitPolicyMetadata);
-  console.log("✅ [Policy CID]:", greetingLimitPolicyMetadata.ipfsCid);
 
   /**
    * ====================================
    * Prepare the IPFS CIDs for the tools and policies
    * NOTE: All arrays below are parallel - each index corresponds to the same tool.
-   * When adding a new tool, ensure you add entries to ALL arrays at the same index.
+   * ❗️If you change the policy parameter values, you will need to reset the state file.
+   * You can do this by running: npm run vincent:reset
    * ====================================
    */
-  const TOOL_IPFS_CIDS = [
-    helloWorldTool.ipfsCid,
-    // nativeSendTool.ipfsCid,
-    // ...add more tool IPFS CIDs here
-  ];
-  const TOOL_POLICIES = [
-    [
-      // greetingLimitPolicyMetadata.ipfsCid
-    ],
-    // [
-    //   // greetingLimitPolicyMetadata.ipfsCid
-    // ],
-  ];
+  const appConfig = createAppConfig(
+    {
+      toolIpfsCids: [
+        // helloWorldTool.ipfsCid,
+        nativeSendTool.ipfsCid,
+        // ...add more tool IPFS CIDs here
+      ],
+      toolPolicies: [
+        // [
+        //   // fooLimitPolicyMetadata.ipfsCid
+        // ],
+        [
+          sendLimitPolicyMetadata.ipfsCid, // Enable send-counter-limit policy for native-send tool
+        ],
+      ],
+      toolPolicyParameterNames: [
+        // [], // No policy parameter names for helloWorldTool
+        ["maxSends", "timeWindowSeconds"], // Policy parameter names for nativeSendTool
+      ],
+      toolPolicyParameterTypes: [
+        // [], // No policy parameter types for helloWorldTool
+        [PARAMETER_TYPE.UINT256, PARAMETER_TYPE.UINT256], // uint256 types for maxSends and timeWindowSeconds
+      ],
+      toolPolicyParameterValues: [
+        // [], // No policy parameter values for helloWorldTool
+        ["2", "10"], // maxSends: 2, timeWindowSeconds: 10
+      ],
+    },
 
-  const TOOL_POLICY_PARAMETER_NAMES = [
-    [], // No policy parameter names for helloWorldTool
-    // [], // No policy parameter names for nativeSendTool
-  ];
-  const TOOL_POLICY_PARAMETER_TYPES = [
-    [], // No policy parameter types for helloWorldTool
-    // [PARAMETER_TYPE.UINT256], // uint256 type ID
-  ];
+    // Debugging options
+    {
+      cidToNameMap: {
+        // [helloWorldTool.ipfsCid]: "Hello World Tool",
+        [nativeSendTool.ipfsCid]: "Native Send Tool",
+        [sendLimitPolicyMetadata.ipfsCid]: "Send Limit Policy",
+      },
+      debug: true,
+    }
+  );
 
-  const TOOL_POLICY_PARAMETER_VALUES = [
-    [], // No policy parameter values for helloWorldTool
-    // [], // No policy parameter values for nativeSendTool
+  /**
+   * Collect all IPFS CIDs for tools and policies that need to be:
+   * 1. Authorised during agent wallet PKP minting
+   * 2. Permitted as authentication methods for the PKP
+   */
+  const toolAndPolicyIpfsCids = [
+    // helloWorldTool.ipfsCid,
+    nativeSendTool.ipfsCid,
+    sendLimitPolicyMetadata.ipfsCid,
   ];
 
   /**
    * ====================================
-   * Use the agent wallet PKP owner to mint a Agent Wallet PKP
+   * 👦🏻 (Agent Wallet PKP Owner) mint an Agent Wallet PKP
    * ====================================
    */
   const agentWalletPkp = await accounts.agentWalletPkpOwner.mintAgentWalletPkp({
-    toolAndPolicyIpfsCids: [
-      helloWorldTool.ipfsCid,
-      greetingLimitPolicyMetadata.ipfsCid,
-    ],
+    toolAndPolicyIpfsCids: toolAndPolicyIpfsCids,
   });
 
-  console.log("agentWalletPkp:", agentWalletPkp);
+  console.log("🤖 Agent Wallet PKP:", agentWalletPkp);
 
   /**
    * ====================================
-   * Register Vincent app with delegatee
+   * 🦹‍♀️ (App Manager Account) Register Vincent app with delegatee
    * ====================================
    */
   const { appId, appVersion } = await chainClient.registerApp({
-    toolIpfsCids: TOOL_IPFS_CIDS,
-    toolPolicies: TOOL_POLICIES,
-    toolPolicyParameterNames: TOOL_POLICY_PARAMETER_NAMES,
-    toolPolicyParameterTypes: TOOL_POLICY_PARAMETER_TYPES,
+    toolIpfsCids: appConfig.TOOL_IPFS_CIDS,
+    toolPolicies: appConfig.TOOL_POLICIES,
+    toolPolicyParameterNames: appConfig.TOOL_POLICY_PARAMETER_NAMES,
+    toolPolicyParameterTypes: appConfig.TOOL_POLICY_PARAMETER_TYPES,
   });
 
   console.log("✅ Vincent app registered:", { appId, appVersion });
 
   /**
    * ====================================
-   * Permit PKP to use the app version
+   * 👦🏻 (Agent Wallet PKP Owner) Permit PKP to use the app version
    * ====================================
    */
   await chainClient.permitAppVersion({
     pkpTokenId: agentWalletPkp.tokenId,
     appId,
     appVersion,
-    toolIpfsCids: TOOL_IPFS_CIDS,
-    policyIpfsCids: TOOL_POLICIES,
-    policyParameterNames: TOOL_POLICY_PARAMETER_NAMES,
-    policyParameterValues: TOOL_POLICY_PARAMETER_VALUES,
-    policyParameterTypes: TOOL_POLICY_PARAMETER_TYPES,
+    toolIpfsCids: appConfig.TOOL_IPFS_CIDS,
+    policyIpfsCids: appConfig.TOOL_POLICIES,
+    policyParameterNames: appConfig.TOOL_POLICY_PARAMETER_NAMES,
+    policyParameterValues: appConfig.TOOL_POLICY_PARAMETER_VALUES,
+    policyParameterTypes: appConfig.TOOL_POLICY_PARAMETER_TYPES,
   });
 
   console.log("✅ PKP permitted to use app version");
 
   /**
    * ====================================
-   * Permit auth methods for the agent wallet PKP
+   * 👦🏻 (Agent Wallet PKP Owner) Permit auth methods for the agent wallet PKP
    * ====================================
    */
   const permittedAuthMethodsTxHashes =
     await accounts.agentWalletPkpOwner.permittedAuthMethods({
       agentWalletPkp: agentWalletPkp,
-      toolAndPolicyIpfsCids: [
-        helloWorldTool.ipfsCid,
-        greetingLimitPolicyMetadata.ipfsCid,
-      ],
+      toolAndPolicyIpfsCids: toolAndPolicyIpfsCids,
     });
 
-  console.log("permittedAuthMethodsTxHashes:", permittedAuthMethodsTxHashes);
+  console.log(
+    "✅ Permitted Auth Methods Tx hashes:",
+    permittedAuthMethodsTxHashes
+  );
 
   /**
    * ====================================
@@ -137,7 +160,7 @@ import { bundledVincentTool as helloWorldTool } from "../../vincent-packages/too
   const validation = await chainClient.validateToolExecution({
     delegateeAddress: accounts.delegatee.ethersWallet.address,
     pkpTokenId: agentWalletPkp.tokenId,
-    toolIpfsCid: helloWorldTool.ipfsCid,
+    toolIpfsCid: nativeSendTool.ipfsCid,
   });
 
   console.log("✅ Tool execution validation:", validation);
@@ -152,47 +175,170 @@ import { bundledVincentTool as helloWorldTool } from "../../vincent-packages/too
 
   /**
    * ====================================
-   * It should run prechecks on the helloWorld tool
+   * Test your tools and policies here
+   * ====================================
+   *
+   * This section is where you validate that your custom tools and policies
+   * work together as expected.
+   *
+   * Replace this example with tests relevant to your tools and policies.
    * ====================================
    */
+  console.log("🧪 Testing send limit policy");
 
-  // @ts-ignore - Type instantiation is excessively deep and possibly infinite.ts(2589)
-  const precheckRes = await helloWorldToolClient.precheck(
+  const TEST_RECIPIENT = accounts.delegatee.ethersWallet.address;
+  const TEST_AMOUNT = "0.00001";
+
+  // ----------------------------------------
+  // Test 1: First send should succeed
+  // ----------------------------------------
+  console.log("(PRECHECK-TEST-1) First send (should succeed)");
+  const nativeSendPrecheckRes1 = await nativeSendToolClient.precheck(
     {
-      message: "Hello, world!",
-      recipient: "John Doe",
+      to: TEST_RECIPIENT,
+      amount: TEST_AMOUNT,
     },
     {
       delegatorPkpEthAddress: agentWalletPkp.ethAddress,
     }
   );
 
-  // Assert
-  if (!precheckRes.success) {
+  console.log("(PRECHECK-RES[1]): ", nativeSendPrecheckRes1);
+
+  if (!nativeSendPrecheckRes1.success) {
     throw new Error(
-      `❌ Precheck failed: ${JSON.stringify(precheckRes, null, 2)}`
+      `❌ First precheck should succeed: ${JSON.stringify(
+        nativeSendPrecheckRes1
+      )}`
     );
   }
 
-  // execute the tool
-  // @ts-ignore - Type instantiation is excessively deep and possibly infinite.ts(2589)
-  const executeRes = await helloWorldToolClient.execute(
+  console.log("(EXECUTE-TEST-1) First send (should succeed)");
+  const executeRes1 = await nativeSendToolClient.execute(
     {
-      message: "Hello, world!",
-      recipient: "John Doe",
+      to: TEST_RECIPIENT,
+      amount: TEST_AMOUNT,
     },
     {
       delegatorPkpEthAddress: agentWalletPkp.ethAddress,
     }
   );
 
-  // Assert
-  if (!executeRes.success) {
+  console.log("(EXECUTE-RES[1]): ", executeRes1);
+
+  if (!executeRes1.success) {
     throw new Error(
-      `❌ Execute failed: ${JSON.stringify(executeRes, null, 2)}`
+      `❌ First execute should succeed: ${JSON.stringify(executeRes1)}`
     );
   }
-  console.log("executeRes:", executeRes);
+
+  console.log("(✅ EXECUTE-TEST-1) First send completed successfully");
+
+  // ----------------------------------------
+  // Test 2: Second send should succeed
+  // ----------------------------------------
+  console.log("(PRECHECK-TEST-2) Second send (should succeed)");
+  const nativeSendPrecheckRes2 = await nativeSendToolClient.precheck(
+    {
+      to: TEST_RECIPIENT,
+      amount: TEST_AMOUNT,
+    },
+    {
+      delegatorPkpEthAddress: agentWalletPkp.ethAddress,
+    }
+  );
+
+  console.log("(PRECHECK-RES[2]): ", nativeSendPrecheckRes2);
+
+  if (!nativeSendPrecheckRes2.success) {
+    throw new Error(
+      `❌ (PRECHECK-TEST-2) Second precheck should succeed: ${JSON.stringify(
+        nativeSendPrecheckRes2
+      )}`
+    );
+  }
+
+  const executeRes2 = await nativeSendToolClient.execute(
+    {
+      to: TEST_RECIPIENT,
+      amount: TEST_AMOUNT,
+    },
+    {
+      delegatorPkpEthAddress: agentWalletPkp.ethAddress,
+    }
+  );
+
+  console.log("(EXECUTE-RES[2]): ", executeRes2);
+
+  if (!executeRes2.success) {
+    throw new Error(
+      `❌ (EXECUTE-TEST-2) Second execute should succeed: ${JSON.stringify(
+        executeRes2
+      )}`
+    );
+  }
+
+  console.log("(✅ EXECUTE-TEST-2) Second send completed successfully");
+
+  // ----------------------------------------
+  // Test 3: Third send should fail (limit exceeded)
+  // ----------------------------------------
+  console.log("(PRECHECK-TEST-3) Third send (should fail - limit exceeded)");
+  const nativeSendPrecheckRes3 = await nativeSendToolClient.precheck(
+    {
+      to: TEST_RECIPIENT,
+      amount: TEST_AMOUNT,
+    },
+    {
+      delegatorPkpEthAddress: agentWalletPkp.ethAddress,
+    }
+  );
+
+  console.log("(PRECHECK-RES[3]): ", nativeSendPrecheckRes3);
+
+  if (nativeSendPrecheckRes3.success) {
+    console.log(
+      "✅ (PRECHECK-TEST-3) Third precheck succeeded (expected - precheck only validates tool parameters)"
+    );
+
+    // Test if execution is properly blocked by policy
+    console.log(
+      "🧪 (EXECUTE-TEST-3) Testing if execution is blocked by policy (this is where enforcement happens)..."
+    );
+
+    const executeRes3 = await nativeSendToolClient.execute(
+      {
+        to: TEST_RECIPIENT,
+        amount: TEST_AMOUNT,
+      },
+      {
+        delegatorPkpEthAddress: agentWalletPkp.ethAddress,
+      }
+    );
+
+    console.log("(EXECUTE-RES[3]): ", executeRes3);
+
+    if (executeRes3.success) {
+      throw new Error(
+        "❌ (EXECUTE-TEST-3) CRITICAL: Third execution should have been blocked by policy but succeeded!"
+      );
+    } else {
+      console.log(
+        "✅ (EXECUTE-TEST-3) PERFECT: Third execution correctly blocked by send limit policy!"
+      );
+      console.log(
+        "🎉 (EXECUTE-TEST-3) SEND LIMIT POLICY SYSTEM WORKING CORRECTLY!"
+      );
+      console.log(
+        "📊 (EXECUTE-TEST-3) Policy properly enforced: 2 sends allowed, 3rd send blocked"
+      );
+    }
+  } else {
+    console.log(
+      "🟨 (PRECHECK-TEST-3) Third send precheck failed (unexpected but also fine)"
+    );
+    console.log("🎉 (PRECHECK-TEST-3) POLICY ENFORCEMENT WORKING!");
+  }
 
   process.exit();
 })();
