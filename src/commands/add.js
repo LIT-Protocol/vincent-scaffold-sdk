@@ -8,6 +8,9 @@ const {
   validateTemplateType,
 } = require('../template-loader');
 
+// Default policy name that tools will reference
+const DEFAULT_POLICY_NAME = "send-counter-limit";
+
 /**
  * Create project from template
  */
@@ -86,6 +89,13 @@ function createProject(type, name, directory) {
       packageName: packageName,
       camelCaseName: name.replace(/-([a-z])/g, (g) => g[1].toUpperCase()),
     };
+
+    // For tools, add the default policy package name
+    if (type === 'tool') {
+      const policyPrefix = vincentConfig.package.policyPrefix;
+      const policyPackageName = `${vincentConfig.package.namespace}/${policyPrefix}${DEFAULT_POLICY_NAME}`;
+      variables.policyPackageName = policyPackageName;
+    }
 
     // Use the shared template creation function
     createProjectFromTemplate(type, directory, variables);

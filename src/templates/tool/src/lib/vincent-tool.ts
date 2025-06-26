@@ -127,7 +127,7 @@ export const vincentTool = createVincentTool({
         // Use the correct pattern from the reference code
         const sendLimitPolicyContext =
           policiesContext.allowedPolicies[
-            "@agentic-ai/vincent-policy-send-counter-limit"
+            "{{policyPackageName}}"
           ];
 
         if (

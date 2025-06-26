@@ -128,6 +128,7 @@ function createOrUpdateGitignore() {
     const entriesToAdd = {
       ".e2e-state.json": "# Vincent state file",
       "node_modules/": "# Dependencies",
+      ".env": "# Environment variables",
     };
 
     let hasChanges = false;
@@ -400,12 +401,16 @@ async function initProject() {
       const toolPrefix = vincentConfig.package.toolPrefix;
       const toolPackageName = `${vincentConfig.package.namespace}/${toolPrefix}${DEFAULT_TOOL_NAME}`;
 
+      const policyPrefix = vincentConfig.package.policyPrefix;
+      const policyPackageName = `${vincentConfig.package.namespace}/${policyPrefix}${DEFAULT_POLICY_NAME}`;
+
       const toolVariables = {
         name: DEFAULT_TOOL_NAME,
         type: "tool",
         namespace: vincentConfig.package.namespace,
         packageName: toolPackageName,
         camelCaseName: DEFAULT_TOOL_CAMEL_CASE_NAME,
+        policyPackageName: policyPackageName,
       };
 
       createProjectFromTemplate("tool", defaultToolDir, toolVariables);
@@ -471,7 +476,7 @@ async function initProject() {
   );
   console.log(chalk.gray("2. Run npm install to install dependencies"));
   console.log(
-    chalk.gray("3. Run npm run vincent:dev to build the default examples")
+    chalk.gray("3. Run npm run vincent:build to build the default examples")
   );
   console.log(
     chalk.gray("4. Run npm run vincent:e2e to test your Vincent projects")
@@ -489,6 +494,36 @@ async function suggestInit() {
       "You need to Initialise your Vincent development environment first.\n"
     )
   );
+
+  // Show current directory and ask for confirmation
+  const currentDir = process.cwd();
+  console.log(chalk.cyan(`📁 Current directory: ${currentDir}`));
+  console.log(
+    chalk.yellow(
+      "⚠️  Make sure you're in your desired project directory before initializing.\n"
+    )
+  );
+
+  const directoryConfirm = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "correctDirectory",
+      message: "Are you in the correct directory for your Vincent project?",
+      default: true,
+    },
+  ]);
+
+  if (!directoryConfirm.correctDirectory) {
+    console.log(
+      chalk.gray(
+        "\n💡 Navigate to your desired project directory and run the command again."
+      )
+    );
+    console.log(
+      chalk.gray("   Example: cd /path/to/my-vincent-project")
+    );
+    process.exit(0);
+  }
 
   const shouldInit = await inquirer.prompt([
     {
