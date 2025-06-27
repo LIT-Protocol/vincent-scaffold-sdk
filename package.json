@@ -1,6 +1,6 @@
 {
   "name": "@lit-protocol/vincent-scaffold-sdk",
-  "version": "0.0.80",
+  "version": "0.0.95",
   "description": "Shared build configuration and utilities for Vincent tools and policies",
   "main": "index.js",
   "bin": {
@@ -10,6 +10,7 @@
     "index.js",
     "bin/cli.js",
     "src/",
+    "vincent-scripts/",
     "tsconfig.base.example.json",
     "dist/",
     "tsconfig.lib.example.json",
@@ -61,7 +62,7 @@
     "build": "tsc",
     "prepublishOnly": "npm run validate && npm run sync-versions && npm run build",
     "validate": "node -c ./src/esbuild-share-config.js && node -c ./src/deno-fetch-shim.js",
-    "sync-versions": "node scripts/sync-template-versions.js"
+    "sync-versions": "node vincent-scripts/sync-template-versions.js"
   },
   "keywords": [
     "vincent",

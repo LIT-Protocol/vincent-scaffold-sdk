@@ -9,6 +9,7 @@ export const toolParamsSchema = z.object({
     .string()
     .regex(/^\d*\.?\d+$/, "Invalid amount format")
     .refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  rpcUrl: z.string().url("Invalid RPC URL format").optional(),
 });
 
 /**

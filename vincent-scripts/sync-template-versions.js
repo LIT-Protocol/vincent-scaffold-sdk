@@ -11,7 +11,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const chalk = require("chalk");
+const chalk = require("chalk").default || require("chalk");
 
 // Configuration
 const MAIN_PACKAGE_PATH = path.join(__dirname, "..", "package.json");

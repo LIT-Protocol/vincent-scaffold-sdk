@@ -32,7 +32,7 @@ const PACKAGES_CONFIG = {
   chalk: { version: "4.1.2", behavior: "always" },
   "@lit-protocol/vincent-app-sdk": { version: "*", behavior: "always" },
   "@lit-protocol/vincent-scaffold-sdk": { version: "*", behavior: "always" },
-  "@ansonhkg/abi-extractor": { version: "1.1.0", behavior: "always" },
+  // "@ansonhkg/abi-extractor": { version: "1.1.0", behavior: "always" },
 };
 
 // AI Rules configuration - files to create/update during init
@@ -88,18 +88,19 @@ const AI_RULES_CONFIG = {
 
 // Scripts configuration - complete scripts object that can be rendered
 const SCRIPTS_CONFIG = {
-  "vincent:build": (config) =>
-    `dotenv -e .env -- sh -c 'cd vincent-packages/policies/${DEFAULT_POLICY_NAME} && npm install && npm run build && cd ../../tools/${DEFAULT_TOOL_NAME} && npm install && npm run build'`,
+  "vincent:hardreset": (config) => `node vincent-scripts/hardReset.js`,
+  "vincent:build": (config) => `node vincent-scripts/buildPackages.js`,
+  "vincent:e2e:reset": (config) => `node vincent-scripts/resetE2E.js`,
   "vincent:e2e": (config) => `dotenv -e .env -- tsx ${config.e2ePath}`,
-  "vincent:e2e:reset": (config) => `rm -f ${FILE_NAMES.e2eStateFile}`,
-  "vincent:forge:check": (config) =>
-    `sh -c 'if command -v forge >/dev/null 2>&1; then echo \"✅ Foundry is available\"; else echo \"❌ Foundry (forge) is not installed. Install it from https://getfoundry.sh/\"; exit 1; fi'`,
-  "vincent:forge:init": (config) =>
-    `dotenv -e .env -- sh -c 'npm run vincent:forge:check && forge init ./vincent-policy-contracts/counter && cd ./vincent-policy-contracts/counter && forge build && forge script script/Counter.s.sol --rpc-url https://yellowstone-rpc.litprotocol.com --broadcast --private-key $TEST_FUNDER_PRIVATE_KEY' && npm run vincent:gen-abi`,
-  "vincent:forge:deploy": (config) =>
-    `dotenv -e .env -- sh -c 'cd ./vincent-policy-contracts/counter && forge script script/Counter.s.sol --rpc-url https://yellowstone-rpc.litprotocol.com --broadcast --private-key $TEST_FUNDER_PRIVATE_KEY' && npm run vincent:gen-abi`,
-  "vincent:gen-abi": (config) =>
-    `cd ./vincent-policy-contracts/counter && npx forge-to-signature Counter.s.sol 175188 ./generated -n counterSignatures`,
+  // "vincent:e2e:erc20": (config) => `dotenv -e .env -- tsx vincent-e2e/src/e2e-erc20.ts`,
+  // "vincent:forge:check": (config) =>
+  //   `node -e "const { spawn } = require('child_process'); const proc = spawn('forge', ['--version'], { stdio: 'pipe' }); proc.on('close', (code) => { if (code === 0) { console.log('✅ Foundry is available'); process.exit(0); } else { console.log('❌ Foundry (forge) is not installed. Install it from https://getfoundry.sh/'); process.exit(1); } }); proc.on('error', () => { console.log('❌ Foundry (forge) is not installed. Install it from https://getfoundry.sh/'); process.exit(1); });"`,
+  // "vincent:forge:init": (config) =>
+  //   `npm run vincent:forge:check && dotenv -e .env -- forge init ./vincent-policy-contracts/counter && cd ./vincent-policy-contracts/counter && forge build && dotenv -e .env -- forge script script/Counter.s.sol --rpc-url https://yellowstone-rpc.litprotocol.com --broadcast --private-key %TEST_FUNDER_PRIVATE_KEY% && npm run vincent:gen-abi`,
+  // "vincent:forge:deploy": (config) =>
+  //   `cd ./vincent-policy-contracts/counter && dotenv -e .env -- forge script script/Counter.s.sol --rpc-url https://yellowstone-rpc.litprotocol.com --broadcast --private-key %TEST_FUNDER_PRIVATE_KEY% && npm run vincent:gen-abi`,
+  // "vincent:gen-abi": (config) =>
+  //   `cd ./vincent-policy-contracts/counter && npx forge-to-signature Counter.s.sol 175188 ./generated -n counterSignatures`,
 };
 
 /**
@@ -154,6 +155,39 @@ function copyE2ETemplate(e2eDirectory = "./vincent-e2e") {
     console.log(
       chalk.yellow(
         `⚠️  Warning: Could not create e2e directory: ${error.message}`
+      )
+    );
+  }
+}
+
+/**
+ * Copy vincent-scripts to project root
+ */
+function copyVincentScripts(scriptsDirectory = "./vincent-scripts") {
+  try {
+    const sourceDir = path.join(__dirname, "..", "..", "vincent-scripts");
+    const targetDir = path.resolve(scriptsDirectory);
+
+    if (fs.existsSync(targetDir)) {
+      console.log(
+        chalk.yellow(
+          `⚠️  ${scriptsDirectory} directory already exists, skipping...`
+        )
+      );
+      return;
+    }
+
+    console.log(
+      chalk.cyan(`📋 Creating Vincent scripts in ${scriptsDirectory}...`)
+    );
+    copyDirectoryRecursively(sourceDir, targetDir);
+    console.log(
+      chalk.green(`✅ Created Vincent scripts in ${scriptsDirectory}`)
+    );
+  } catch (error) {
+    console.log(
+      chalk.yellow(
+        `⚠️  Warning: Could not create vincent-scripts directory: ${error.message}`
       )
     );
   }
@@ -567,6 +601,9 @@ async function initProject() {
 
   // Create or update .gitignore file
   createOrUpdateGitignore();
+
+  // Copy vincent-scripts to project root
+  copyVincentScripts();
 
   // Create or update package.json with Vincent scripts
   createOrUpdatePackageJson(config.e2eDirectory);
