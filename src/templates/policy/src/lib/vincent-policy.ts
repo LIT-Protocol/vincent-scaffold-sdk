@@ -267,7 +267,9 @@ export const vincentPolicy = createVincentPolicy({
         `[{{packageName}}/commit] Calling incrementByAddress(${ethAddress}) on contract ${counterSignatures.address}`
       );
 
-      const provider = await laUtils.chain.getYellowstoneProvider();
+      const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
 
       // Call contract directly without Lit.Actions.runOnce wrapper
       const txHash = await laUtils.transaction.handler.contractCall({

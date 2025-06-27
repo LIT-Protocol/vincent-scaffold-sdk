@@ -96,7 +96,9 @@ export const vincentTool = createVincentTool({
       });
 
       // Get provider
-      const provider = await laUtils.chain.getYellowstoneProvider();
+      const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
 
       // Get PKP public key from delegation context
       const pkpPublicKey = delegation.delegatorPkpInfo.publicKey;
