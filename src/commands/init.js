@@ -399,44 +399,51 @@ async function promptForInit() {
         return true;
       },
     },
-    {
-      type: "input",
-      name: "toolPrefix",
-      message: "Tool package prefix:",
-      default: "vincent-tool-",
-    },
-    {
-      type: "input",
-      name: "policyPrefix",
-      message: "Policy package prefix:",
-      default: "vincent-policy-",
-    },
-    {
-      type: "input",
-      name: "toolsDirectory",
-      message: "Tools directory:",
-      default: "./vincent-packages/tools",
-    },
-    {
-      type: "input",
-      name: "policiesDirectory",
-      message: "Policies directory:",
-      default: "./vincent-packages/policies",
-    },
-    {
-      type: "input",
-      name: "e2eDirectory",
-      message: "E2E testing directory:",
-      default: "./vincent-e2e",
-      validate: (input) => {
-        if (!input.trim()) {
-          return "E2E directory is required";
-        }
-        return true;
-      },
-      filter: (input) => input.trim(),
-    },
+    // {
+    //   type: "input",
+    //   name: "toolPrefix",
+    //   message: "Tool package prefix:",
+    //   default: "vincent-tool-",
+    // },
+    // {
+    //   type: "input",
+    //   name: "policyPrefix",
+    //   message: "Policy package prefix:",
+    //   default: "vincent-policy-",
+    // },
+    // {
+    //   type: "input",
+    //   name: "toolsDirectory",
+    //   message: "Tools directory:",
+    //   default: "./vincent-packages/tools",
+    // },
+    // {
+    //   type: "input",
+    //   name: "policiesDirectory",
+    //   message: "Policies directory:",
+    //   default: "./vincent-packages/policies",
+    // },
+    // {
+    //   type: "input",
+    //   name: "e2eDirectory",
+    //   message: "E2E testing directory:",
+    //   default: "./vincent-e2e",
+    //   validate: (input) => {
+    //     if (!input.trim()) {
+    //       return "E2E directory is required";
+    //     }
+    //     return true;
+    //   },
+    //   filter: (input) => input.trim(),
+    // },
   ]);
+
+  // Add hardcoded defaults for commented out prompts
+  answers.toolPrefix = "vincent-tool-";
+  answers.policyPrefix = "vincent-policy-";
+  answers.toolsDirectory = "./vincent-packages/tools";
+  answers.policiesDirectory = "./vincent-packages/policies";
+  answers.e2eDirectory = "./vincent-e2e";
 
   return answers;
 }
