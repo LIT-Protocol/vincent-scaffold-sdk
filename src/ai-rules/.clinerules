@@ -1,0 +1,398 @@
+# Vincent Scaffold SDK - Cline AI Rules
+
+## Project Overview
+
+Vincent Scaffold SDK for creating blockchain tools and policies that execute on Lit Actions - a restricted blockchain environment.
+
+## 🚨 Critical Execution Constraints
+
+### Lit Actions Environment
+
+- **NO** `globalThis`, `process.env`, Node.js built-ins in tools/policies
+- **NO** persistent memory or file system access
+- **NO** mock/fake data - request proper specifications
+- **laUtils** API only available in specific execution phases
+
+## 🛠️ CLI-Focused Development
+
+### Project Initialization
+
+```bash
+# Initialize Vincent project
+npx @lit-protocol/vincent-scaffold-sdk init
+
+# Follow prompts for namespace configuration:
+# Package namespace: @company
+# Tool prefix: vincent-tool-
+# Policy prefix: vincent-policy-
+```
+
+### Component Generation
+
+```bash
+# Create new tool
+npx @lit-protocol/vincent-scaffold-sdk add tool erc20-transfer
+
+# Create new policy
+npx @lit-protocol/vincent-scaffold-sdk add policy rate-limiter
+
+# Generated structure:
+# vincent-packages/tools/erc20-transfer/
+# vincent-packages/policies/rate-limiter/
+```
+
+### Build and Test Automation
+
+```bash
+# Build all components
+npm run vincent:build
+
+# Run integration tests
+npm run vincent:e2e
+
+# Reset test state (when needed)
+npm run vincent:reset
+
+# Package-specific operations (from component directory)
+npx @lit-protocol/vincent-scaffold-sdk pkg build
+npx @lit-protocol/vincent-scaffold-sdk pkg clean
+```
+
+## 📋 Schema-Driven Development Pattern
+
+### Always Start with Schemas
+
+```typescript
+// src/lib/schemas.ts
+import { z } from "zod";
+
+export const toolParamsSchema = z.object({
+  to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid address"),
+  amount: z
+    .string()
+    .regex(/^\d*\.?\d+$/, "Invalid amount")
+    .refine((val) => parseFloat(val) > 0, "Amount must be positive"),
+  tokenAddress: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid token contract"),
+});
+
+export type ToolParams = z.infer<typeof toolParamsSchema>;
+
+// Required result schemas
+export const precheckSuccessSchema = z.object({ validated: z.boolean() });
+export const executeSuccessSchema = z.object({
+  txHash: z.string(),
+  timestamp: z.number(),
+});
+export const executeFailSchema = z.object({ error: z.string() });
+```
+
+## 🏗️ Implementation Patterns
+
+### Tool Implementation (2-phase)
+
+```typescript
+// src/lib/vincent-tool.ts
+import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
+
+export const vincentTool = createVincentTool({
+  packageName: "{{packageName}}" as const,
+  toolParamsSchema,
+
+  // Phase 1: Validation (NO laUtils)
+  precheck: async ({ toolParams }, { succeed, fail }) => {
+    if (!toolParams.to.startsWith("0x")) {
+      return fail({ error: "Invalid address format" });
+    }
+    return succeed({ validated: true });
+  },
+
+  // Phase 2: Execution (laUtils available)
+  execute: async ({ toolParams }, { succeed, fail, delegation }) => {
+    try {
+      const provider = new ethers.providers.JsonRpcProvider(
+        "https://yellowstone-rpc.litprotocol.com/"
+      );
+      const txHash = await laUtils.transaction.handler.contractCall({
+        provider,
+        pkpPublicKey: delegation.delegatorPkpInfo.publicKey,
+        callerAddress: delegation.delegatorPkpInfo.ethAddress,
+        abi: ERC20_ABI,
+        contractAddress: toolParams.tokenAddress,
+        functionName: "transfer",
+        args: [toolParams.to, parseEther(toolParams.amount)],
+      });
+
+      return succeed({ txHash, timestamp: Date.now() });
+    } catch (error) {
+      return fail({ error: error.message });
+    }
+  },
+});
+```
+
+### Policy Implementation (3-phase)
+
+```typescript
+// src/lib/vincent-policy.ts
+export const vincentPolicy = createVincentPolicy({
+  packageName: "{{packageName}}" as const,
+
+  // Phase 1: Early validation (NO laUtils)
+  precheck: async ({ toolParams, userParams }, { allow, deny }) => {
+    const currentCount = await checkFromExternalStorage();
+    if (currentCount >= userParams.maxTransfers) {
+      return deny({ reason: "Limit exceeded", currentCount });
+    }
+    return allow({
+      currentCount,
+      remaining: userParams.maxTransfers - currentCount,
+    });
+  },
+
+  // Phase 2: Runtime evaluation (laUtils available)
+  evaluate: async ({ toolParams, userParams }, { allow, deny }) => {
+    const result = await Lit.Actions.runOnce(
+      { waitForResponse: true, name: "checkPolicy" },
+      async () => validatePolicyConditions(params)
+    );
+    return result.allowed ? allow(result) : deny(result);
+  },
+
+  // Phase 3: State recording (laUtils available)
+  commit: async ({ params }, { allow, delegation }) => {
+    const provider = new ethers.providers.JsonRpcProvider(
+      "https://yellowstone-rpc.litprotocol.com/"
+    );
+    await recordPolicyState(provider, params);
+    return allow({ recorded: true });
+  },
+});
+```
+
+## 🔧 Build Script Automation
+
+### Critical: Update Build Scripts
+
+When adding new components, MUST update root `package.json`:
+
+```bash
+# Current build script (check package.json)
+"vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/send-counter-limit && npm install && npm run build && cd ../../tools/native-send && npm install && npm run build'"
+
+# Updated to include new components
+"vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/send-counter-limit && npm install && npm run build && cd ../rate-limiter && npm install && npm run build && cd ../../tools/native-send && npm install && npm run build && cd ../erc20-transfer && npm install && npm run build'"
+```
+
+### Verification Commands
+
+```bash
+# Verify build works
+npm run vincent:build
+
+# Check generated files exist
+ls vincent-packages/tools/*/src/generated/
+ls vincent-packages/policies/*/src/generated/
+
+# Test integration
+npm run vincent:e2e
+```
+
+## 🧪 Testing and Integration
+
+### E2E Test Pattern
+
+```typescript
+// vincent-e2e/src/e2e.ts - Update imports
+import { bundledVincentTool as erc20Tool } from "../../vincent-packages/tools/erc20-transfer/dist/index.js";
+import { vincentPolicyMetadata as rateLimitPolicy } from "../../vincent-packages/policies/rate-limiter/dist/index.js";
+
+// Configure and test
+const toolConfig = createVincentToolConfig({
+  tool: erc20Tool,
+  userParams: {
+    to: "0x742d35Cc6635C0532925a3b8D400631707BFFfcc",
+    amount: "0.001",
+    tokenAddress: "0x1234567890123456789012345678901234567890",
+  },
+});
+
+const result = await chainClient.executeTools({
+  tools: [toolConfig],
+  policies: [rateLimitPolicy],
+});
+```
+
+## 🔍 Command-Line Debugging
+
+### Common Issues and Solutions
+
+```bash
+# 1. Build failures
+npm run vincent:build
+# Check for TypeScript errors, missing dependencies
+
+# 2. Missing generated files
+ls vincent-packages/*/src/generated/
+# Ensure build script includes all components
+
+# 3. Test failures
+npm run vincent:e2e
+# Check import paths, schema validation
+
+# 4. Clean rebuild
+npm run vincent:reset
+npm run vincent:build
+
+# 5. Package-specific debugging (from component directory)
+npx @lit-protocol/vincent-scaffold-sdk pkg clean
+npx @lit-protocol/vincent-scaffold-sdk pkg build
+```
+
+### Environment Setup
+
+```bash
+# Check Vincent configuration
+cat vincent.json
+
+# Verify environment file
+cp .env.vincent-sample .env
+# Edit .env with proper values
+
+# Check dependencies
+npm list | grep vincent
+npm list | grep lit-protocol
+```
+
+## 📁 File Structure Commands
+
+### Navigate Project Structure
+
+```bash
+# Show project layout
+tree vincent-packages/ -I node_modules
+
+# Check template files
+ls src/templates/tool/
+ls src/templates/policy/
+
+# Verify gitignore patterns
+cat vincent-packages/tools/*/.gitignore
+cat vincent-packages/policies/*/.gitignore
+```
+
+### Template Variable Verification
+
+```bash
+# Check for template variables in generated files
+grep -r "{{" vincent-packages/
+# Should return no results after build
+
+# Verify package names in generated files
+grep -r "packageName" vincent-packages/*/src/lib/
+```
+
+## 🚫 Anti-Patterns Detection
+
+### Forbidden Pattern Checks
+
+```bash
+# Check for environment variable usage
+grep -r "process\.env" vincent-packages/*/src/lib/
+# Should only appear in build configs, not in tool/policy logic
+
+# Check for globalThis usage
+grep -r "globalThis" vincent-packages/*/src/lib/
+# Should not appear in tool/policy implementations
+
+# Check for mock data
+grep -r "mock\|fake" vincent-packages/*/src/lib/
+# Should not appear in implementations
+```
+
+### laUtils Usage Validation
+
+```bash
+# Check laUtils imports
+grep -r "laUtils" vincent-packages/*/src/lib/
+
+# Verify no laUtils in precheck hooks
+grep -A 10 -B 5 "precheck.*laUtils" vincent-packages/*/src/lib/
+# Should return no results
+```
+
+## 🎯 Automation Scripts
+
+### Create Component Script
+
+```bash
+#!/bin/bash
+# create-component.sh
+COMPONENT_TYPE=$1
+COMPONENT_NAME=$2
+
+npx @lit-protocol/vincent-scaffold-sdk add $COMPONENT_TYPE $COMPONENT_NAME
+
+# Update build script
+# (Add logic to update package.json build script)
+
+npm run vincent:build
+npm run vincent:e2e
+```
+
+### Validation Script
+
+```bash
+#!/bin/bash
+# validate-vincent.sh
+
+echo "Building all components..."
+npm run vincent:build || exit 1
+
+echo "Running tests..."
+npm run vincent:e2e || exit 1
+
+echo "Checking for forbidden patterns..."
+if grep -r "process\.env" vincent-packages/*/src/lib/; then
+  echo "ERROR: Found process.env usage in tool/policy"
+  exit 1
+fi
+
+echo "Validation complete!"
+```
+
+## 🚀 Quick Reference Commands
+
+```bash
+# Project lifecycle
+npx @lit-protocol/vincent-scaffold-sdk init
+npx @lit-protocol/vincent-scaffold-sdk add tool my-tool
+npx @lit-protocol/vincent-scaffold-sdk add policy my-policy
+npm run vincent:build
+npm run vincent:e2e
+
+# Development cycle
+npm run vincent:build && npm run vincent:e2e
+npm run vincent:reset  # Only when needed
+
+# Component operations (from component directory)
+npx @lit-protocol/vincent-scaffold-sdk pkg build
+npx @lit-protocol/vincent-scaffold-sdk pkg clean
+npx @lit-protocol/vincent-scaffold-sdk pkg deploy
+
+# Debugging
+ls vincent-packages/*/src/generated/
+grep -r "{{" vincent-packages/  # Should be empty after build
+cat package.json | grep vincent:build
+```
+
+## 📚 Reference Locations
+
+- Tool example: `vincent-packages/tools/native-send/`
+- Policy example: `vincent-packages/policies/send-counter-limit/`
+- Templates: `src/templates/tool/` and `src/templates/policy/`
+- CLI source: `bin/cli.js` and `src/commands/`
+
+Focus on command-line efficiency and automation for Vincent development workflow.

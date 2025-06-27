@@ -1,0 +1,333 @@
+# Vincent Scaffold SDK - Bolt AI Prompt
+
+## Project Context
+You are working with the Vincent Scaffold SDK - a framework for creating blockchain tools and policies that execute on Lit Actions (a restricted blockchain environment).
+
+## 🚨 Critical Constraints - READ FIRST
+
+### Lit Actions Environment Limitations
+- **FORBIDDEN**: `globalThis`, `process.env`, Node.js built-ins in tools/policies
+- **FORBIDDEN**: Persistent memory or file system access
+- **FORBIDDEN**: Mock/fake data - always request real requirements
+- **RESTRICTED**: `laUtils` API only available in specific execution phases
+
+### Execution Phases
+- **Precheck hooks**: Validation only (NO laUtils, NO blockchain access)
+- **Execute/Evaluate/Commit hooks**: Full laUtils access for blockchain operations
+
+## 🏗️ Rapid Development Patterns
+
+### 1. Quick Tool Creation
+```bash
+# Generate tool from template
+npx @lit-protocol/vincent-scaffold-sdk add tool erc20-transfer
+```
+
+### 2. Schema-First Pattern
+```typescript
+// Always start with schemas (src/lib/schemas.ts)
+import { z } from "zod";
+
+export const toolParamsSchema = z.object({
+  to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid address"),
+  amount: z.string().regex(/^\d*\.?\d+$/, "Invalid amount"),
+  tokenAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid token contract")
+});
+
+export type ToolParams = z.infer<typeof toolParamsSchema>;
+```
+
+### 3. Tool Implementation Template
+```typescript
+// src/lib/vincent-tool.ts
+import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
+
+export const vincentTool = createVincentTool({
+  packageName: "{{packageName}}" as const,
+  toolParamsSchema,
+  
+  precheck: async ({ toolParams }, { succeed, fail }) => {
+    // ONLY validation - NO laUtils
+    if (!toolParams.to.startsWith("0x")) {
+      return fail({ error: "Invalid address" });
+    }
+    return succeed({ validated: true });
+  },
+
+  execute: async ({ toolParams }, { succeed, fail, delegation }) => {
+    // laUtils available here
+    const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+    
+    const txHash = await laUtils.transaction.handler.contractCall({
+      provider,
+      pkpPublicKey: delegation.delegatorPkpInfo.publicKey,
+      abi: ERC20_ABI,
+      contractAddress: toolParams.tokenAddress,
+      functionName: "transfer",
+      args: [toolParams.to, parseEther(toolParams.amount)]
+    });
+    
+    return succeed({ txHash, timestamp: Date.now() });
+  }
+});
+```
+
+### 4. Policy Implementation Template
+```typescript
+// src/lib/vincent-policy.ts
+export const vincentPolicy = createVincentPolicy({
+  packageName: "{{packageName}}" as const,
+  
+  precheck: async ({ toolParams, userParams }, { allow, deny }) => {
+    // Early validation - NO laUtils
+    const currentCount = await checkFromExternalStorage();
+    if (currentCount >= userParams.maxSends) {
+      return deny({ reason: "Limit exceeded" });
+    }
+    return allow({ currentCount });
+  },
+
+  evaluate: async ({ toolParams, userParams }, { allow, deny }) => {
+    // Runtime checks - laUtils available
+    const result = await Lit.Actions.runOnce(
+      { waitForResponse: true, name: "checkPolicy" },
+      async () => validateConditions(params)
+    );
+    return result.allowed ? allow(result) : deny(result);
+  },
+
+  commit: async ({ params }, { allow, delegation }) => {
+    // State recording - laUtils available
+    const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+    await recordToBlockchain(provider, params);
+    return allow({ recorded: true });
+  }
+});
+```
+
+## 🔧 laUtils API Reference
+
+### Available APIs (execute/evaluate/commit only)
+```typescript
+import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
+
+// Chain operations
+const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+
+// Contract calls
+const txHash = await laUtils.transaction.handler.contractCall({
+  provider,
+  pkpPublicKey: delegation.delegatorPkpInfo.publicKey,
+  abi: contractABI,
+  contractAddress: "0x...",
+  functionName: "transfer",
+  args: [recipient, amount]
+});
+
+// Native transfers
+const nativeTxHash = await laUtils.transaction.handler.nativeSend({
+  provider,
+  pkpPublicKey: delegation.delegatorPkpInfo.publicKey,
+  amount: "0.001",
+  to: "0x..."
+});
+
+// Utilities
+const ethAddress = laUtils.helpers.toEthAddress(publicKey);
+```
+
+## 🚀 Quick Build & Test Cycle
+
+### 1. Create Component
+```bash
+npx @lit-protocol/vincent-scaffold-sdk add tool my-tool
+```
+
+### 2. Update Build Script
+**CRITICAL**: Add to root `package.json`:
+```json
+{
+  "scripts": {
+    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/my-policy && npm install && npm run build && cd ../../tools/my-tool && npm install && npm run build'"
+  }
+}
+```
+
+### 3. Development Cycle
+```bash
+npm run vincent:build    # Build all
+npm run vincent:e2e      # Test integration
+npm run vincent:reset    # Reset state (if needed)
+```
+
+## 📋 Essential Validation Patterns
+
+### Common Validators
+```typescript
+// Ethereum address
+z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid address")
+
+// Amount with validation
+z.string()
+  .regex(/^\d*\.?\d+$/, "Invalid amount")
+  .refine((val) => parseFloat(val) > 0, "Must be positive")
+
+// Token contract address
+z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid token contract")
+```
+
+### Helper Functions
+```typescript
+const isValidEthereumAddress = (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr);
+const parseEther = (amount: string) => BigInt(parseFloat(amount) * 1e18).toString();
+
+const ERC20_ABI = [
+  {
+    "name": "transfer",
+    "type": "function", 
+    "inputs": [
+      {"name": "_to", "type": "address"},
+      {"name": "_value", "type": "uint256"}
+    ],
+    "outputs": [{"name": "", "type": "bool"}]
+  }
+];
+```
+
+## 🧪 E2E Testing Pattern
+
+### Test Setup
+```typescript
+// Import built components
+import { bundledVincentTool } from "../../vincent-packages/tools/my-tool/dist/index.js";
+import { vincentPolicyMetadata } from "../../vincent-packages/policies/my-policy/dist/index.js";
+
+// Configure and test
+const toolConfig = createVincentToolConfig({
+  tool: bundledVincentTool,
+  userParams: {
+    to: "0x742d35Cc6635C0532925a3b8D400631707BFFfcc",
+    amount: "0.001",
+    tokenAddress: "0x1234567890123456789012345678901234567890"
+  }
+});
+
+const result = await chainClient.executeTools({
+  tools: [toolConfig],
+  policies: [policyMetadata]
+});
+```
+
+## 🚫 Common Mistakes to Avoid
+
+### ❌ Forbidden Patterns
+```typescript
+// Environment variables (NOT available)
+const apiKey = process.env.API_KEY;
+
+// Global objects (NOT available)  
+const data = globalThis.myData;
+
+// laUtils in precheck (WILL FAIL)
+precheck: async ({ toolParams }, { succeed, fail }) => {
+  const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+); // ERROR
+}
+
+// Mock data (NEVER use)
+const fakeResult = { txHash: "0xfake..." };
+```
+
+### ✅ Correct Patterns
+```typescript
+// Validation in precheck
+precheck: async ({ toolParams }, { succeed, fail }) => {
+  if (!isValidEthereumAddress(toolParams.to)) {
+    return fail({ error: "Invalid address" });
+  }
+  return succeed({ validated: true });
+}
+
+// Blockchain ops in execute
+execute: async ({ toolParams }, { succeed, fail }) => {
+  const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+  // blockchain operations...
+}
+```
+
+## 🎯 Template Variables
+
+Use these in generated code:
+- `{{packageName}}` - Full package name
+- `{{name}}` - Component name  
+- `{{namespace}}` - Package namespace
+- `{{camelCaseName}}` - CamelCase version
+- `{{policyPackageName}}` - For tool-policy integration
+
+## 📁 Project Structure
+
+```
+vincent-packages/
+├── tools/
+│   └── my-tool/
+│       ├── src/lib/
+│       │   ├── schemas.ts        # Zod schemas
+│       │   ├── vincent-tool.ts   # Implementation
+│       │   └── helpers/index.ts  # Utilities
+│       └── package.json
+└── policies/
+    └── my-policy/
+        ├── src/lib/
+        │   ├── schemas.ts           # Zod schemas  
+        │   ├── vincent-policy.ts    # Implementation
+        │   └── helpers/index.ts     # Utilities
+        └── package.json
+```
+
+## 🔍 Quick Debugging
+
+### Build Issues
+```bash
+# Check build
+npm run vincent:build
+
+# Verify generated files
+ls vincent-packages/*/src/generated/
+
+# Check template variables (should be empty after build)
+grep -r "{{" vincent-packages/
+```
+
+### Test Issues
+```bash
+# Reset state
+npm run vincent:reset
+
+# Full rebuild and test
+npm run vincent:build && npm run vincent:e2e
+```
+
+## 🚀 Rapid Prototyping Workflow
+
+1. **Generate**: `npx @lit-protocol/vincent-scaffold-sdk add tool my-tool`
+2. **Define schemas**: Update `src/lib/schemas.ts`
+3. **Implement logic**: Update `src/lib/vincent-tool.ts`
+4. **Update build**: Add to root `package.json` build script
+5. **Test**: `npm run vincent:build && npm run vincent:e2e`
+
+## 📚 Reference Examples
+- Tool: `vincent-packages/tools/native-send/`
+- Policy: `vincent-packages/policies/send-counter-limit/`
+- Templates: `src/templates/tool/` and `src/templates/policy/`
+
+Focus on rapid iteration while respecting Vincent's blockchain execution constraints.

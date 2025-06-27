@@ -1,0 +1,338 @@
+# Vincent Scaffold SDK - General AI Rules
+
+## Project Overview
+Vincent Scaffold SDK for creating blockchain tools and policies that execute on Lit Actions - a blockchain-based execution environment with specific constraints.
+
+## 🚨 Universal Constraints
+
+### Execution Environment Restrictions
+- **NO** `globalThis`, `process.env`, or Node.js built-ins in tools/policies
+- **NO** persistent memory between executions
+- **NO** file system access during tool/policy execution
+- **NO** mock or fake data - request proper specifications instead
+
+### laUtils API Context Rules
+```typescript
+import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
+
+// ✅ Available in:
+// - Tool execute hooks
+// - Policy evaluate and commit hooks
+
+// ❌ NOT available in:
+// - Precheck hooks (tools and policies)
+```
+
+## 🏗️ Core Architecture Patterns
+
+### Tool Structure (2-phase execution)
+```typescript
+export const vincentTool = createVincentTool({
+  packageName: "{{packageName}}" as const,
+  
+  // Phase 1: Input validation (no blockchain access)
+  precheck: async ({ toolParams }, { succeed, fail }) => {
+    // Pure validation logic only
+    if (!isValidAddress(toolParams.to)) {
+      return fail({ error: "Invalid address" });
+    }
+    return succeed({ validated: true });
+  },
+
+  // Phase 2: Blockchain execution (laUtils available)
+  execute: async ({ toolParams }, { succeed, fail, delegation }) => {
+    const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+    const txHash = await performBlockchainOperation();
+    return succeed({ txHash, timestamp: Date.now() });
+  }
+});
+```
+
+### Policy Structure (3-phase execution)
+```typescript
+export const vincentPolicy = createVincentPolicy({
+  packageName: "{{packageName}}" as const,
+  
+  // Phase 1: Early validation (no blockchain access)
+  precheck: async ({ toolParams, userParams }, { allow, deny }) => {
+    const limitCheck = await checkFromExternalStorage();
+    return limitCheck.allowed ? allow(limitCheck) : deny(limitCheck);
+  },
+
+  // Phase 2: Runtime evaluation (laUtils available)
+  evaluate: async ({ toolParams, userParams }, { allow, deny }) => {
+    const result = await Lit.Actions.runOnce({ /*...*/ });
+    return result.allowed ? allow(result) : deny(result);
+  },
+
+  // Phase 3: State recording (laUtils available)
+  commit: async ({ params }, { allow, delegation }) => {
+    const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+    await recordToBlockchain(provider, params);
+    return allow({ recorded: true });
+  }
+});
+```
+
+## 📋 Schema-Driven Development
+
+### Required Schema Pattern
+```typescript
+import { z } from "zod";
+
+// Always define comprehensive schemas
+export const toolParamsSchema = z.object({
+  to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
+  amount: z.string()
+    .regex(/^\d*\.?\d+$/, "Invalid amount format")
+    .refine((val) => parseFloat(val) > 0, "Amount must be positive")
+});
+
+export type ToolParams = z.infer<typeof toolParamsSchema>;
+
+// All result schemas required
+export const precheckSuccessSchema = z.object({ validated: z.boolean() });
+export const executeSuccessSchema = z.object({ txHash: z.string(), timestamp: z.number() });
+export const executeFailSchema = z.object({ error: z.string() });
+```
+
+## 🛠️ Development Workflow
+
+### Component Creation
+```bash
+# Create new components
+npx @lit-protocol/vincent-scaffold-sdk add tool my-tool
+npx @lit-protocol/vincent-scaffold-sdk add policy my-policy
+
+# Build and test cycle
+npm run vincent:build    # Build all components
+npm run vincent:e2e      # Run integration tests
+npm run vincent:reset    # Reset test state (when needed)
+```
+
+### Build Script Management
+**CRITICAL**: When adding new components, update root `package.json`:
+```json
+{
+  "scripts": {
+    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/my-policy && npm install && npm run build && cd ../../tools/my-tool && npm install && npm run build'"
+  }
+}
+```
+
+## 🔧 laUtils API Reference
+
+### Chain Operations
+```typescript
+// Get blockchain provider (Lit Actions context only)
+const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+const config = laUtils.chain.yellowstoneConfig;
+```
+
+### Transaction Handlers
+```typescript
+// Contract calls
+const txHash = await laUtils.transaction.handler.contractCall({
+  provider,
+  pkpPublicKey: delegation.delegatorPkpInfo.publicKey,
+  callerAddress: delegation.delegatorPkpInfo.ethAddress,
+  abi: contractABI,
+  contractAddress: "0x...",
+  functionName: "transfer",
+  args: [recipient, amount],
+  overrides: { gasLimit: 100000 }
+});
+
+// Native ETH transfers
+const nativeTxHash = await laUtils.transaction.handler.nativeSend({
+  provider,
+  pkpPublicKey: delegation.delegatorPkpInfo.publicKey,
+  amount: "0.001",
+  to: "0x..."
+});
+```
+
+### Utility Functions
+```typescript
+const ethAddress = laUtils.helpers.toEthAddress(publicKey);
+```
+
+## 📁 Standard Project Structure
+
+```
+vincent-packages/
+├── tools/
+│   └── tool-name/
+│       ├── src/lib/
+│       │   ├── schemas.ts        # Zod validation schemas
+│       │   ├── vincent-tool.ts   # Main tool implementation
+│       │   └── helpers/index.ts  # Tool-specific utilities
+│       ├── package.json
+│       ├── .gitignore           # Includes .env patterns
+│       └── tsconfig.json
+└── policies/
+    └── policy-name/
+        ├── src/lib/
+        │   ├── schemas.ts           # Zod validation schemas
+        │   ├── vincent-policy.ts    # Main policy implementation
+        │   └── helpers/index.ts     # Policy-specific utilities
+        ├── package.json
+        ├── .gitignore              # Includes .env patterns
+        └── tsconfig.json
+```
+
+## 🧪 E2E Testing Patterns
+
+### Import and Test Configuration
+```typescript
+// Use relative paths to built dist/ folders
+import { bundledVincentTool } from "../../vincent-packages/tools/my-tool/dist/index.js";
+import { vincentPolicyMetadata } from "../../vincent-packages/policies/my-policy/dist/index.js";
+
+// Configure test
+const toolConfig = createVincentToolConfig({
+  tool: bundledVincentTool,
+  userParams: {
+    to: "0x742d35Cc6635C0532925a3b8D400631707BFFfcc",
+    amount: "0.001"
+  }
+});
+
+// Execute with policy enforcement
+const result = await chainClient.executeTools({
+  tools: [toolConfig],
+  policies: [policyMetadata]
+});
+```
+
+## 🚫 Universal Anti-Patterns
+
+### ❌ Forbidden Patterns
+```typescript
+// Environment variables (not available in Lit Actions)
+const apiKey = process.env.API_KEY;
+
+// Global objects (not available in Lit Actions)
+const data = globalThis.myGlobal;
+
+// File system access (not available in Lit Actions)
+const config = require('./config.json');
+
+// Mock/fake data (never use)
+const mockResult = { txHash: "0xfake..." };
+
+// laUtils in precheck hooks (will fail)
+precheck: async ({ toolParams }, { succeed, fail }) => {
+  const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+); // ERROR
+}
+```
+
+### ✅ Correct Patterns
+```typescript
+// Validation in precheck hooks
+precheck: async ({ toolParams }, { succeed, fail }) => {
+  if (!isValidEthereumAddress(toolParams.to)) {
+    return fail({ error: "Invalid address" });
+  }
+  return succeed({ validated: true });
+}
+
+// Blockchain operations in execute/evaluate/commit hooks
+execute: async ({ toolParams }, { succeed, fail }) => {
+  const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+  const txHash = await performTransaction();
+  return succeed({ txHash, timestamp: Date.now() });
+}
+```
+
+## 🎯 Template Variables
+
+When working with templates or creating new components:
+- `{{packageName}}` - Full package name (e.g., `@company/vincent-tool-name`)
+- `{{name}}` - Component name (e.g., `my-tool`)
+- `{{namespace}}` - Package namespace (e.g., `@company`)
+- `{{camelCaseName}}` - CamelCase version of name
+- `{{policyPackageName}}` - For tool-policy integration
+
+## 🔍 Common Validation Patterns
+
+```typescript
+// Ethereum address validation
+const addressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid address");
+
+// Amount validation with refinements
+const amountSchema = z.string()
+  .regex(/^\d*\.?\d+$/, "Invalid amount format")
+  .refine((val) => parseFloat(val) > 0, "Amount must be positive")
+  .refine((val) => parseFloat(val) <= 1000, "Amount too large");
+
+// Helper functions
+const isValidEthereumAddress = (address: string): boolean => 
+  /^0x[a-fA-F0-9]{40}$/.test(address);
+
+const parseEther = (amount: string): string => 
+  BigInt(parseFloat(amount) * 1e18).toString();
+```
+
+## 🚀 Quick Reference Commands
+
+```bash
+# Project setup
+npx @lit-protocol/vincent-scaffold-sdk init
+
+# Component creation
+npx @lit-protocol/vincent-scaffold-sdk add tool my-tool
+npx @lit-protocol/vincent-scaffold-sdk add policy my-policy
+
+# Build and test
+npm run vincent:build
+npm run vincent:e2e
+npm run vincent:reset
+
+# Package operations (from component directory)
+npx @lit-protocol/vincent-scaffold-sdk pkg build
+npx @lit-protocol/vincent-scaffold-sdk pkg clean
+```
+
+## 🔍 Debugging and Troubleshooting
+
+### Common Issues
+1. **laUtils context errors** - Verify usage only in execute/evaluate/commit hooks
+2. **Build failures** - Check template variable substitution and TypeScript errors
+3. **Import errors** - Use relative paths to dist/ folders for E2E tests
+4. **Test failures** - Ensure build script includes all new components
+5. **Validation errors** - Check Zod schema definitions
+
+### Verification Steps
+- [ ] `npm run vincent:build` completes without errors
+- [ ] Generated files exist in `component/src/generated/`
+- [ ] `npm run vincent:e2e` passes all tests
+- [ ] Root build script updated for new components
+- [ ] No forbidden patterns in tool/policy code
+
+## 📚 Reference Examples
+- **Tool**: `vincent-packages/tools/native-send/`
+- **Policy**: `vincent-packages/policies/send-counter-limit/`
+- **E2E Tests**: `vincent-e2e/src/e2e.ts`
+- **Templates**: `src/templates/tool/` and `src/templates/policy/`
+
+## 🆘 When You Need Help
+
+If implementation details are unclear:
+1. **DO NOT** create mock or placeholder data
+2. **DO NOT** make assumptions about missing information
+3. **DO** ask for specific clarification about requirements
+4. **DO** provide concrete examples of what information is needed
+5. **DO** suggest proper solutions rather than workarounds
+
+Remember: Vincent development requires precision due to blockchain execution constraints. Focus on following established patterns and respecting environment limitations.

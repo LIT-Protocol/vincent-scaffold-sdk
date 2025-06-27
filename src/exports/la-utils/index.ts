@@ -1,4 +1,3 @@
-import { getYellowstoneProvider } from "./la-chain/yellowstone/getYellowstoneProvider";
 import { yellowstoneConfig } from "./la-chain/yellowstone/yellowstoneConfig";
 import { contractCall } from "./la-transactions/handlers/contractCall";
 import { nativeSend } from "./la-transactions/handlers/nativeSend";
@@ -9,7 +8,6 @@ import { toEthAddress } from "./la-helpers/toEthAddress";
 
 // Named exports for individual utilities
 export {
-  getYellowstoneProvider,
   yellowstoneConfig,
   contractCall,
   nativeSend,
@@ -22,7 +20,6 @@ export {
 // Organized exports under laUtils object
 export const laUtils = {
   chain: {
-    getYellowstoneProvider,
     yellowstoneConfig,
   },
   transaction: {

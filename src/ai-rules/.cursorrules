@@ -1,0 +1,219 @@
+# Vincent Scaffold SDK - Cursor IDE Rules
+
+## Project Context
+This is the Vincent Scaffold SDK for creating blockchain tools and policies that execute on Lit Actions. The framework has strict execution environment constraints and specific patterns.
+
+## Core Constraints - CRITICAL
+
+### Lit Actions Environment Limitations
+- NEVER use `globalThis` in tools/policies (not available)
+- NEVER use `process.env` in tools/policies (not available)  
+- NEVER use Node.js built-in modules in tools/policies
+- NEVER create mock/fake data - ask for clarification instead
+- State does NOT persist between executions
+
+### laUtils API Restrictions
+- laUtils can ONLY be used in Lit Actions context:
+  - ✅ Tool `execute` hooks
+  - ✅ Policy `evaluate` and `commit` hooks
+  - ❌ NEVER in `precheck` hooks
+- Import: `import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils"`
+
+## Development Patterns
+
+### Schema-First Development
+- Always define Zod schemas before implementation
+- Required schemas: `toolParamsSchema`, `precheckSuccessSchema`, `precheckFailSchema`, `executeSuccessSchema`, `executeFailSchema`
+- Export types: `export type ToolParams = z.infer<typeof toolParamsSchema>;`
+
+### File Structure Conventions
+```
+vincent-packages/
+├── tools/
+│   └── tool-name/
+│       ├── src/lib/
+│       │   ├── schemas.ts           # Zod validation schemas
+│       │   ├── vincent-tool.ts      # Main tool implementation
+│       │   └── helpers/index.ts     # Tool-specific utilities
+│       ├── package.json
+│       └── .gitignore
+└── policies/
+    └── policy-name/
+        ├── src/lib/
+        │   ├── schemas.ts           # Zod validation schemas  
+        │   ├── vincent-policy.ts    # Main policy implementation
+        │   └── helpers/index.ts     # Policy-specific utilities
+        ├── package.json
+        └── .gitignore
+```
+
+### Tool Implementation Pattern
+```typescript
+import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
+
+export const vincentTool = createVincentTool({
+  packageName: "{{packageName}}" as const,
+  toolParamsSchema,
+  
+  precheck: async ({ toolParams }, { succeed, fail }) => {
+    // NO laUtils here - validation only
+    if (!toolParams.to.startsWith("0x")) {
+      return fail({ error: "Invalid address" });
+    }
+    return succeed({ validated: true });
+  },
+
+  execute: async ({ toolParams }, { succeed, fail, delegation }) => {
+    // laUtils available here
+    const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+    // Implementation...
+  }
+});
+```
+
+### Policy Implementation Pattern
+```typescript
+export const vincentPolicy = createVincentPolicy({
+  packageName: "{{packageName}}" as const,
+  
+  precheck: async ({ toolParams, userParams }, { allow, deny }) => {
+    // NO laUtils here
+  },
+  
+  evaluate: async ({ toolParams, userParams }, { allow, deny }) => {
+    // laUtils available here
+    const result = await Lit.Actions.runOnce({ /*...*/ });
+  },
+  
+  commit: async ({ params }, { allow, delegation }) => {
+    // laUtils available here
+    const provider = new ethers.providers.JsonRpcProvider(
+  "https://yellowstone-rpc.litprotocol.com/"
+);
+  }
+});
+```
+
+## Template Variables
+When working with templates or creating new components:
+- `{{packageName}}` - Full package name (e.g., `@company/vincent-tool-name`)
+- `{{name}}` - Component name (e.g., `my-tool`)
+- `{{namespace}}` - Package namespace (e.g., `@company`)
+- `{{policyPackageName}}` - For tools referencing policies
+- `{{camelCaseName}}` - CamelCase version of name
+
+## Import Patterns
+
+### Tool/Policy Development
+```typescript
+import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
+import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+import { z } from "zod";
+```
+
+### E2E Testing
+```typescript
+import { bundledVincentTool } from "../../vincent-packages/tools/my-tool/dist/index.js";
+import { vincentPolicyMetadata } from "../../vincent-packages/policies/my-policy/dist/index.js";
+```
+
+## Build Script Management
+When adding new tools/policies, ALWAYS update root `package.json`:
+
+```json
+{
+  "scripts": {
+    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/my-policy && npm install && npm run build && cd ../../tools/my-tool && npm install && npm run build'"
+  }
+}
+```
+
+## Common Commands
+```bash
+# Project initialization
+npx @lit-protocol/vincent-scaffold-sdk init
+
+# Create components
+npx @lit-protocol/vincent-scaffold-sdk add tool my-tool
+npx @lit-protocol/vincent-scaffold-sdk add policy my-policy
+
+# Build and test
+npm run vincent:build    # Build all components
+npm run vincent:e2e      # Run E2E tests
+npm run vincent:reset    # Reset test state
+
+# Package operations (from tool/policy directory)
+npx @lit-protocol/vincent-scaffold-sdk pkg build
+npx @lit-protocol/vincent-scaffold-sdk pkg clean
+```
+
+## Code Style
+
+### TypeScript
+- Use strict type checking
+- Define interfaces for complex objects
+- Use branded types for addresses: `type EthAddress = string & { __brand: unique symbol }`
+- Prefer `readonly` for immutable data
+- Use template literal types where appropriate
+
+### Error Handling
+```typescript
+// Structured error patterns
+interface ToolError {
+  code: 'VALIDATION_ERROR' | 'EXECUTION_ERROR';
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+// Result patterns
+return succeed({ txHash, timestamp: Date.now() });
+return fail({ error: "Transaction failed", code: "EXECUTION_ERROR" });
+```
+
+### Validation
+```typescript
+// Ethereum address validation
+z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address")
+
+// Amount validation
+z.string()
+  .regex(/^\d*\.?\d+$/, "Invalid amount format")
+  .refine((val) => parseFloat(val) > 0, "Amount must be greater than 0")
+```
+
+## Forbidden Patterns
+- Using environment variables in tools/policies
+- Creating mock/fake data
+- Using laUtils in precheck hooks
+- Accessing file system in tools/policies
+- Using Node.js built-ins in Lit Actions context
+- Forgetting to update build scripts when adding components
+
+## When Creating New Components
+1. Use CLI commands to generate from templates
+2. Update schemas first
+3. Implement logic following existing patterns
+4. Update build scripts in root package.json
+5. Test with `npm run vincent:build && npm run vincent:e2e`
+
+## Available laUtils APIs
+```typescript
+// Chain utilities
+laUtils.chain.getYellowstoneProvider()
+laUtils.chain.yellowstoneConfig
+
+// Transaction handlers
+laUtils.transaction.handler.contractCall()
+laUtils.transaction.handler.nativeSend()
+
+// Primitives
+laUtils.transaction.primitive.getNonce()
+laUtils.transaction.primitive.sendTx()
+laUtils.transaction.primitive.signTx()
+
+// Helpers
+laUtils.helpers.toEthAddress()
+```

@@ -35,12 +35,63 @@ const PACKAGES_CONFIG = {
   "@ansonhkg/abi-extractor": { version: "1.1.0", behavior: "always" },
 };
 
+// AI Rules configuration - files to create/update during init
+const AI_RULES_CONFIG = {
+  // "AGENTS.md": { 
+  //   description: "General AI agents guidance",
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", "AGENTS.md")
+  // },
+  // "CLAUDE.md": {
+  //   description: "Claude Code specific guidance", 
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", "CLAUDE.md")
+  // },
+  // "GEMINI.md": {
+  //   description: "Google Gemini specific guidance",
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", "GEMINI.md")
+  // },
+  // ".cursorrules": {
+  //   description: "Cursor IDE rules",
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", ".cursorrules")
+  // },
+  // ".cursor/rules": {
+  //   description: "Cursor IDE extended rules",
+  //   directory: ".cursor",
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", ".cursor", "rules")
+  // },
+  // ".windsurfrules": {
+  //   description: "Windsurf IDE guidance", 
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", ".windsurfrules")
+  // },
+  // ".clinerules": {
+  //   description: "Cline AI rules",
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", ".clinerules")
+  // },
+  // ".github/copilot-instructions.md": {
+  //   description: "GitHub Copilot guidance",
+  //   directory: ".github",
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", ".github", "copilot-instructions.md")
+  // },
+  // ".bolt/prompt": {
+  //   description: "Bolt AI guidance", 
+  //   directory: ".bolt",
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", ".bolt", "prompt")
+  // },
+  // ".rules": {
+  //   description: "General fallback rules",
+  //   sourcePath: path.join(__dirname, "..", "ai-rules", ".rules")
+  // },
+  "erc-20-feature-request.md": {
+    description: "ERC-20 tool implementation example",
+    sourcePath: path.join(__dirname, "..", "ai-rules", "erc-20-feature-request.md")
+  }
+};
+
 // Scripts configuration - complete scripts object that can be rendered
 const SCRIPTS_CONFIG = {
   "vincent:build": (config) =>
     `dotenv -e .env -- sh -c 'cd vincent-packages/policies/${DEFAULT_POLICY_NAME} && npm install && npm run build && cd ../../tools/${DEFAULT_TOOL_NAME} && npm install && npm run build'`,
   "vincent:e2e": (config) => `dotenv -e .env -- tsx ${config.e2ePath}`,
-  "vincent:reset": (config) => `rm -f ${FILE_NAMES.e2eStateFile}`,
+  "vincent:e2e:reset": (config) => `rm -f ${FILE_NAMES.e2eStateFile}`,
   "vincent:forge:check": (config) =>
     `sh -c 'if command -v forge >/dev/null 2>&1; then echo \"✅ Foundry is available\"; else echo \"❌ Foundry (forge) is not installed. Install it from https://getfoundry.sh/\"; exit 1; fi'`,
   "vincent:forge:init": (config) =>
@@ -154,6 +205,70 @@ function createOrUpdateGitignore() {
       chalk.yellow(`⚠️  Warning: Could not update .gitignore: ${error.message}`)
     );
   }
+}
+
+/**
+ * Create or update AI rule files
+ */
+function createOrUpdateAIRules() {
+  console.log(chalk.cyan("\n🤖 Setting up AI development guidance files..."));
+  
+  let filesCreated = 0;
+  let filesUpdated = 0;
+  
+  for (const [targetFile, config] of Object.entries(AI_RULES_CONFIG)) {
+    try {
+      const targetPath = path.resolve(targetFile);
+      const targetDir = path.dirname(targetPath);
+      
+      // Create directory if needed
+      if (config.directory || targetDir !== process.cwd()) {
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true });
+        }
+      }
+      
+      // Check if source file exists
+      if (!fs.existsSync(config.sourcePath)) {
+        console.log(chalk.yellow(`⚠️  Warning: Source file not found: ${config.sourcePath}`));
+        continue;
+      }
+      
+      // Read source content
+      const sourceContent = fs.readFileSync(config.sourcePath, 'utf8');
+      
+      if (fs.existsSync(targetPath)) {
+        // File exists - check if we should update
+        const existingContent = fs.readFileSync(targetPath, 'utf8');
+        
+        if (existingContent.includes('# Vincent Scaffold SDK') || 
+            existingContent.includes('Vincent Framework') ||
+            existingContent.includes('Vincent Scaffold SDK')) {
+          // Appears to be a Vincent-generated file, update it
+          fs.writeFileSync(targetPath, sourceContent);
+          filesUpdated++;
+          console.log(chalk.yellow(`📝 Updated ${targetFile}`));
+        } else {
+          // User-created file, append Vincent section
+          const separator = '\n\n# ========================================\n# Vincent Scaffold SDK - AI Guidance\n# ========================================\n\n';
+          const updatedContent = existingContent + separator + sourceContent;
+          fs.writeFileSync(targetPath, updatedContent);
+          filesUpdated++;
+          console.log(chalk.yellow(`📝 Appended Vincent guidance to ${targetFile}`));
+        }
+      } else {
+        // File doesn't exist - create it
+        fs.writeFileSync(targetPath, sourceContent);
+        filesCreated++;
+        console.log(chalk.green(`✅ Created ${targetFile}`));
+      }
+      
+    } catch (error) {
+      console.log(chalk.yellow(`⚠️  Warning: Could not process ${targetFile}: ${error.message}`));
+    }
+  }
+  
+  console.log(chalk.green(`✅ AI guidance setup complete: ${filesCreated} created, ${filesUpdated} updated`));
 }
 
 /**
@@ -459,6 +574,9 @@ async function initProject() {
   // Copy e2e template to project root
   copyE2ETemplate(config.e2eDirectory);
 
+  // Create or update AI rule files
+  createOrUpdateAIRules();
+
   console.log(chalk.cyan("\n🎉 Vincent development environment initialised!"));
   console.log(chalk.gray("Default examples created:"));
   console.log(
@@ -469,6 +587,9 @@ async function initProject() {
   );
   console.log(
     chalk.gray("• e2e testing framework - End-to-end testing utilities")
+  );
+  console.log(
+    chalk.gray("• ai guidance files - Development rules for various AI tools")
   );
   console.log(chalk.gray("\nNext steps:"));
   console.log(

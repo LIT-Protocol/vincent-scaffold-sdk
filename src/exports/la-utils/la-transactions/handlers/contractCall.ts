@@ -5,7 +5,7 @@ import { sendTx } from "../primitive/sendTx";
 /**
  * Handler function for making contract calls
  * This function handles the preparation, signing, and sending of contract transactions
- * 
+ *
  * @param provider - The network provider instance
  * @param pkpPublicKey - The PKP public key for transaction signing
  * @param pkpEthAddress - The ethereum address derived from PKP
@@ -14,6 +14,7 @@ import { sendTx } from "../primitive/sendTx";
  * @param functionName - The name of the function to call
  * @param args - The arguments to pass to the function
  * @param overrides - Optional transaction overrides (value, gasLimit)
+ * @param chainId - Optional chain ID (defaults to yellowstoneConfig.id)
  * @returns The transaction hash
  */
 export const contractCall = async ({
@@ -25,6 +26,7 @@ export const contractCall = async ({
   functionName,
   args,
   overrides = {},
+  chainId,
 }: {
   provider: any;
   pkpPublicKey: string;
@@ -37,6 +39,7 @@ export const contractCall = async ({
     value?: string | number | bigint;
     gasLimit?: number;
   };
+  chainId?: number;
 }) => {
   // Step 1: Encode function data using ethers Interface
   const iface = new ethers.utils.Interface(abi);
@@ -80,7 +83,7 @@ export const contractCall = async ({
     gasLimit: gasLimit,
     gasPrice: gasPrice,
     nonce: nonce,
-    chainId: yellowstoneConfig.id,
+    chainId: chainId ?? yellowstoneConfig.id,
   };
 
   console.log("Transaction:", tx);
