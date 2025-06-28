@@ -6,11 +6,6 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { CapacityCreditInfo } from "../utils/mint-cc";
 import { PKPInfo } from "../utils/mint-pkp";
 
-// Helper function to convert private key to address
-function privateKeyToAddress(privateKey: `0x${string}`): string {
-  return privateKeyToAccount(privateKey).address;
-}
-
 interface AccountState {
   privateKey: string;
   address: string;
@@ -119,7 +114,6 @@ interface NestedE2EState {
   };
 }
 
-
 const STATE_FILE_PATH = path.join(process.cwd(), ".e2e-state.json");
 const STATE_VERSION = "2.0.0";
 
@@ -128,7 +122,7 @@ export class StateManager {
     version: STATE_VERSION,
     testFiles: {},
   };
-  
+
   private currentConfigState: ConfigurationState | null = null;
 
   constructor(
@@ -140,25 +134,36 @@ export class StateManager {
   ) {
     // If tool/policy CIDs are provided, generate the real config hash
     if (toolIpfsCids && toolPolicyCids) {
-      this.configHash = StateManager.generateConfigHash(toolIpfsCids, toolPolicyCids);
+      this.configHash = StateManager.generateConfigHash(
+        toolIpfsCids,
+        toolPolicyCids
+      );
     }
-    
+
     // Initialize the current configuration state
     this.currentConfigState = this.getCurrentConfigState();
-    console.log(`🏗️  StateManager initialized with nested structure v${STATE_VERSION} for ${testFileName}:${this.configHash}`);
+    console.log(
+      `🏗️  StateManager initialized with nested structure v${STATE_VERSION} for ${testFileName}:${this.configHash}`
+    );
   }
 
   /**
    * Generate configuration hash from tool and policy IPFS CIDs
    */
-  static generateConfigHash(toolIpfsCids: string[], toolPolicyCids: string[][]): string {
+  static generateConfigHash(
+    toolIpfsCids: string[],
+    toolPolicyCids: string[][]
+  ): string {
     // Combine all IPFS CIDs and create a hash
     const flattenedPolicyCids = toolPolicyCids.flat();
     const allCids = [...toolIpfsCids, ...flattenedPolicyCids];
     const sortedCids = allCids.sort();
-    const cidString = sortedCids.join('');
-    const hash = createHash('sha256').update(cidString).digest('hex').substring(0, 8);
-    
+    const cidString = sortedCids.join("");
+    const hash = createHash("sha256")
+      .update(cidString)
+      .digest("hex")
+      .substring(0, 8);
+
     return hash;
   }
 
@@ -167,16 +172,16 @@ export class StateManager {
    */
   static autoDetectTestFileName(): string {
     const stack = new Error().stack;
-    if (!stack) return 'unknown-test.ts';
-    
-    const stackLines = stack.split('\n');
+    if (!stack) return "unknown-test.ts";
+
+    const stackLines = stack.split("\n");
     for (const line of stackLines) {
       const match = line.match(/\/([^\/\s]+\.ts):/);
-      if (match && match[1] !== 'state-manager.ts' && match[1] !== 'init.ts') {
+      if (match && match[1] !== "state-manager.ts" && match[1] !== "init.ts") {
         return match[1];
       }
     }
-    return 'unknown-test.ts';
+    return "unknown-test.ts";
   }
 
   /**
@@ -184,15 +189,15 @@ export class StateManager {
    */
   private getCurrentConfigState(): ConfigurationState {
     if (!this.nestedState.testFiles[this.testFileName]) {
-      this.nestedState.testFiles[this.testFileName] = { 
+      this.nestedState.testFiles[this.testFileName] = {
         accounts: {},
         pkps: {},
         capacityCredits: {},
         configurations: {},
-        appVersions: {}
+        appVersions: {},
       };
     }
-    
+
     // Ensure all structures exist for this test file
     if (!this.nestedState.testFiles[this.testFileName].accounts) {
       this.nestedState.testFiles[this.testFileName].accounts = {};
@@ -203,40 +208,56 @@ export class StateManager {
     if (!this.nestedState.testFiles[this.testFileName].capacityCredits) {
       this.nestedState.testFiles[this.testFileName].capacityCredits = {};
     }
-    
-    if (!this.nestedState.testFiles[this.testFileName].configurations[this.configHash]) {
-      this.nestedState.testFiles[this.testFileName].configurations[this.configHash] = {
+
+    if (
+      !this.nestedState.testFiles[this.testFileName].configurations[
+        this.configHash
+      ]
+    ) {
+      this.nestedState.testFiles[this.testFileName].configurations[
+        this.configHash
+      ] = {
         configHash: this.configHash,
         toolIpfsCids: [],
         toolPolicyCids: [],
         lastUsed: new Date().toISOString(),
         network: this.network,
-        state: {}
+        state: {},
       };
     }
-    
-    return this.nestedState.testFiles[this.testFileName].configurations[this.configHash];
+
+    return this.nestedState.testFiles[this.testFileName].configurations[
+      this.configHash
+    ];
   }
 
   /**
    * Set the real configuration hash based on tool/policy CIDs
    * This should be called before any state operations when CIDs are known
    */
-  setConfigurationFromCIDs(toolIpfsCids: string[], toolPolicyCids: string[][]): void {
-    const newConfigHash = StateManager.generateConfigHash(toolIpfsCids, toolPolicyCids);
-    
+  setConfigurationFromCIDs(
+    toolIpfsCids: string[],
+    toolPolicyCids: string[][]
+  ): void {
+    const newConfigHash = StateManager.generateConfigHash(
+      toolIpfsCids,
+      toolPolicyCids
+    );
+
     if (newConfigHash !== this.configHash) {
-      console.log(`🔄 Setting configuration from ${this.configHash} to ${newConfigHash}`);
-      
+      console.log(
+        `🔄 Setting configuration from ${this.configHash} to ${newConfigHash}`
+      );
+
       // Update the internal config hash
       (this as any).configHash = newConfigHash;
-      
+
       // Reset current config state since we're switching to a new config
       this.currentConfigState = null;
-      
+
       // Initialize the new configuration state
       this.currentConfigState = this.getCurrentConfigState();
-      
+
       // Update metadata
       this.updateConfigurationMetadata(toolIpfsCids, toolPolicyCids);
     } else {
@@ -248,7 +269,10 @@ export class StateManager {
   /**
    * Update configuration metadata
    */
-  updateConfigurationMetadata(toolIpfsCids: string[], toolPolicyCids: string[][]) {
+  updateConfigurationMetadata(
+    toolIpfsCids: string[],
+    toolPolicyCids: string[][]
+  ) {
     const configState = this.getCurrentConfigState();
     configState.toolIpfsCids = toolIpfsCids;
     configState.toolPolicyCids = toolPolicyCids;
@@ -258,49 +282,61 @@ export class StateManager {
   /**
    * Generate app version key from appId and appVersion
    */
-  private static generateAppVersionKey(appId: string, appVersion: string): string {
+  private static generateAppVersionKey(
+    appId: string,
+    appVersion: string
+  ): string {
     return `${appId}-${appVersion}`;
   }
 
   /**
    * Get app version configuration, creating if needed
    */
-  private getAppVersionConfiguration(appId: string, appVersion: string): AppVersionConfiguration {
+  private getAppVersionConfiguration(
+    appId: string,
+    appVersion: string
+  ): AppVersionConfiguration {
     const appVersionKey = StateManager.generateAppVersionKey(appId, appVersion);
-    
+
     if (!this.nestedState.testFiles[this.testFileName]) {
-      this.nestedState.testFiles[this.testFileName] = { 
+      this.nestedState.testFiles[this.testFileName] = {
         configurations: {},
-        appVersions: {}
+        appVersions: {},
       };
     }
-    
-    if (!this.nestedState.testFiles[this.testFileName].appVersions[appVersionKey]) {
-      throw new Error(`App version configuration ${appVersionKey} not found. It should be created when saving the app.`);
+
+    if (
+      !this.nestedState.testFiles[this.testFileName].appVersions[appVersionKey]
+    ) {
+      throw new Error(
+        `App version configuration ${appVersionKey} not found. It should be created when saving the app.`
+      );
     }
-    
-    return this.nestedState.testFiles[this.testFileName].appVersions[appVersionKey];
+
+    return this.nestedState.testFiles[this.testFileName].appVersions[
+      appVersionKey
+    ];
   }
 
   /**
    * Save app version configuration
    */
   private saveAppVersionConfiguration(
-    appId: string, 
-    appVersion: string, 
+    appId: string,
+    appVersion: string,
     vincentApp: VincentAppState,
     toolIpfsCids: string[],
     toolPolicyCids: string[][]
   ): void {
     const appVersionKey = StateManager.generateAppVersionKey(appId, appVersion);
-    
+
     if (!this.nestedState.testFiles[this.testFileName]) {
-      this.nestedState.testFiles[this.testFileName] = { 
+      this.nestedState.testFiles[this.testFileName] = {
         configurations: {},
-        appVersions: {}
+        appVersions: {},
       };
     }
-    
+
     this.nestedState.testFiles[this.testFileName].appVersions[appVersionKey] = {
       appId,
       appVersion,
@@ -310,11 +346,13 @@ export class StateManager {
       network: this.network,
       state: {
         vincentApp,
-        pkpAppPermissions: []
-      }
+        pkpAppPermissions: [],
+      },
     };
-    
-    console.log(chalk.green(`💾 Saved app version configuration: ${appVersionKey}`));
+
+    console.log(
+      chalk.green(`💾 Saved app version configuration: ${appVersionKey}`)
+    );
   }
 
   /**
@@ -323,7 +361,9 @@ export class StateManager {
   async getOrRegisterVincentAppVersioned(
     delegateeAddress: string,
     registerAppFunction: () => Promise<{ appId: string; appVersion: string }>,
-    registerNextVersionFunction: (appId: string) => Promise<{ appId: string; appVersion: string }>,
+    registerNextVersionFunction: (
+      appId: string
+    ) => Promise<{ appId: string; appVersion: string }>,
     toolIpfsCids: string[],
     toolPolicies: string[][],
     toolPolicyParameterNames: string[][],
@@ -342,15 +382,23 @@ export class StateManager {
   }> {
     // First, check if we have any existing app for this delegatee
     const existingApp = this.getExistingVincentApp(delegateeAddress);
-    
+
     if (existingApp) {
       const appId = existingApp.appId;
-      
+
       // Check if current tools/policies match any existing app version
-      const matchingAppVersion = this.findMatchingAppVersion(appId, toolIpfsCids, toolPolicies);
-      
+      const matchingAppVersion = this.findMatchingAppVersion(
+        appId,
+        toolIpfsCids,
+        toolPolicies
+      );
+
       if (matchingAppVersion) {
-        console.log(chalk.blue(`🏢 Using existing app version: ${appId} v${matchingAppVersion}`));
+        console.log(
+          chalk.blue(
+            `🏢 Using existing app version: ${appId} v${matchingAppVersion}`
+          )
+        );
         return {
           appId,
           appVersion: matchingAppVersion,
@@ -364,9 +412,11 @@ export class StateManager {
         };
       } else {
         // Register new version for existing app
-        console.log(chalk.yellow(`🏢 Registering new version for existing app: ${appId}`));
+        console.log(
+          chalk.yellow(`🏢 Registering new version for existing app: ${appId}`)
+        );
         const { appVersion } = await registerNextVersionFunction(appId);
-        
+
         // Save the new app version
         const vincentApp: VincentAppState = {
           appId,
@@ -380,15 +430,15 @@ export class StateManager {
           createdAt: new Date().toISOString(),
           network: this.network,
         };
-        
+
         this.saveAppVersionConfiguration(
-          appId, 
-          appVersion, 
-          vincentApp, 
-          toolIpfsCids, 
+          appId,
+          appVersion,
+          vincentApp,
+          toolIpfsCids,
           toolPolicies
         );
-        
+
         return {
           appId,
           appVersion,
@@ -405,7 +455,7 @@ export class StateManager {
       // Register completely new app
       console.log(chalk.yellow(`🏢 Registering new Vincent app...`));
       const { appId, appVersion } = await registerAppFunction();
-      
+
       // Save the new app version
       const vincentApp: VincentAppState = {
         appId,
@@ -419,15 +469,15 @@ export class StateManager {
         createdAt: new Date().toISOString(),
         network: this.network,
       };
-      
+
       this.saveAppVersionConfiguration(
-        appId, 
-        appVersion, 
-        vincentApp, 
-        toolIpfsCids, 
+        appId,
+        appVersion,
+        vincentApp,
+        toolIpfsCids,
         toolPolicies
       );
-      
+
       // Also save to current config for backward compatibility
       this.saveVincentApp(
         appId,
@@ -439,7 +489,7 @@ export class StateManager {
         toolPolicyParameterTypes,
         toolPolicyParameterValues
       );
-      
+
       return {
         appId,
         appVersion,
@@ -457,36 +507,49 @@ export class StateManager {
   /**
    * Find matching app version based on tool/policy CIDs
    */
-  private findMatchingAppVersion(appId: string, toolIpfsCids: string[], toolPolicies: string[][]): string | undefined {
+  private findMatchingAppVersion(
+    appId: string,
+    toolIpfsCids: string[],
+    toolPolicies: string[][]
+  ): string | undefined {
     if (!this.nestedState.testFiles[this.testFileName]?.appVersions) {
       return undefined;
     }
-    
-    const appVersions = this.nestedState.testFiles[this.testFileName].appVersions;
-    
+
+    const appVersions =
+      this.nestedState.testFiles[this.testFileName].appVersions;
+
     for (const [appVersionKey, config] of Object.entries(appVersions)) {
       if (config.appId === appId && config.network === this.network) {
         // Check if tool CIDs match
-        const toolCidsMatch = JSON.stringify(config.toolIpfsCids.sort()) === JSON.stringify(toolIpfsCids.sort());
-        const policyCidsMatch = JSON.stringify(config.toolPolicyCids) === JSON.stringify(toolPolicies);
-        
+        const toolCidsMatch =
+          JSON.stringify(config.toolIpfsCids.sort()) ===
+          JSON.stringify(toolIpfsCids.sort());
+        const policyCidsMatch =
+          JSON.stringify(config.toolPolicyCids) ===
+          JSON.stringify(toolPolicies);
+
         if (toolCidsMatch && policyCidsMatch) {
-          console.log(chalk.blue(`🔍 Found matching app version: ${appVersionKey}`));
+          console.log(
+            chalk.blue(`🔍 Found matching app version: ${appVersionKey}`)
+          );
           return config.appVersion;
         }
       }
     }
-    
-    console.log(chalk.yellow(`🔍 No matching app version found for appId ${appId} with current tools/policies`));
+
+    console.log(
+      chalk.yellow(
+        `🔍 No matching app version found for appId ${appId} with current tools/policies`
+      )
+    );
     return undefined;
   }
-
 
   async loadState(): Promise<void> {
     try {
       const data = await fs.readFile(STATE_FILE_PATH, "utf-8");
       const loadedState = JSON.parse(data);
-
 
       // Validate version compatibility
       if (loadedState.version !== STATE_VERSION) {
@@ -500,8 +563,11 @@ export class StateManager {
 
       this.nestedState = loadedState;
       this.currentConfigState = this.getCurrentConfigState();
-      console.log(chalk.blue(`📁 Loaded existing state for ${this.testFileName}:${this.configHash}`));
-      
+      console.log(
+        chalk.blue(
+          `📁 Loaded existing state for ${this.testFileName}:${this.configHash}`
+        )
+      );
     } catch (error) {
       // File doesn't exist or is invalid - that's ok, we'll create it
       console.log(
@@ -517,23 +583,24 @@ export class StateManager {
       if (this.currentConfigState) {
         this.currentConfigState.lastUsed = new Date().toISOString();
       }
-      
+
       await fs.writeFile(
         STATE_FILE_PATH,
         JSON.stringify(this.nestedState, null, 2),
         "utf-8"
       );
-      console.log(chalk.gray(`💾 Saved state for ${this.testFileName}:${this.configHash}`));
+      console.log(
+        chalk.gray(`💾 Saved state for ${this.testFileName}:${this.configHash}`)
+      );
     } catch (error) {
       console.error(chalk.red("❌ Failed to save state:"), error);
       throw error;
     }
   }
 
-
   generateAccount(): AccountState {
     const privateKey = generatePrivateKey();
-    const address = privateKeyToAddress(privateKey);
+    const address = privateKeyToAccount(privateKey).address;
 
     return {
       privateKey,
@@ -543,14 +610,15 @@ export class StateManager {
     };
   }
 
-
   getOrGenerateAccount(
     accountType: "appManager" | "appDelegatee" | "agentWalletPkpOwner",
     existingPrivateKey?: string
   ): { privateKey: string; address: string; isNew: boolean } {
     // If private key provided from env, use it
     if (existingPrivateKey) {
-      const address = privateKeyToAddress(existingPrivateKey as `0x${string}`);
+      const address = privateKeyToAccount(
+        existingPrivateKey as `0x${string}`
+      ).address;
       return {
         privateKey: existingPrivateKey,
         address,
@@ -562,8 +630,9 @@ export class StateManager {
     this.getCurrentConfigState();
 
     // Get accounts for this test file and network
-    const testFileAccounts = this.nestedState.testFiles[this.testFileName].accounts!;
-    
+    const testFileAccounts =
+      this.nestedState.testFiles[this.testFileName].accounts!;
+
     // Ensure network accounts exist for this test file
     if (!testFileAccounts[this.network]) {
       testFileAccounts[this.network] = {};
@@ -571,9 +640,13 @@ export class StateManager {
 
     // Check if we have a saved account for this type in this test file
     const savedAccount = testFileAccounts[this.network][accountType];
-    
+
     if (savedAccount && savedAccount.network === this.network) {
-      console.log(chalk.blue(`🔑 Using ${accountType} from ${this.testFileName}: ${savedAccount.address}`));
+      console.log(
+        chalk.blue(
+          `🔑 Using ${accountType} from ${this.testFileName}: ${savedAccount.address}`
+        )
+      );
       return {
         privateKey: savedAccount.privateKey,
         address: savedAccount.address,
@@ -582,9 +655,14 @@ export class StateManager {
     }
 
     // Check for legacy shared account and migrate if exists
-    const legacyAccount = this.nestedState.sharedAccounts?.[this.network]?.[accountType];
+    const legacyAccount =
+      this.nestedState.sharedAccounts?.[this.network]?.[accountType];
     if (legacyAccount && legacyAccount.network === this.network) {
-      console.log(chalk.blue(`🔄 Migrating shared ${accountType} to ${this.testFileName}: ${legacyAccount.address}`));
+      console.log(
+        chalk.blue(
+          `🔄 Migrating shared ${accountType} to ${this.testFileName}: ${legacyAccount.address}`
+        )
+      );
       testFileAccounts[this.network][accountType] = legacyAccount;
       return {
         privateKey: legacyAccount.privateKey,
@@ -594,7 +672,11 @@ export class StateManager {
     }
 
     // Generate new account for this test file
-    console.log(chalk.yellow(`🔑 Generating new ${accountType} account for ${this.testFileName}`));
+    console.log(
+      chalk.yellow(
+        `🔑 Generating new ${accountType} account for ${this.testFileName}`
+      )
+    );
     const newAccount = this.generateAccount();
     testFileAccounts[this.network][accountType] = newAccount;
 
@@ -607,14 +689,17 @@ export class StateManager {
 
   getGeneratedAccounts(): string[] {
     // Get accounts for this test file
-    const testFileAccounts = this.nestedState.testFiles[this.testFileName]?.accounts?.[this.network] || {};
-    
+    const testFileAccounts =
+      this.nestedState.testFiles[this.testFileName]?.accounts?.[this.network] ||
+      {};
+
     // Also check legacy shared accounts for backward compatibility
-    const legacyAccounts = this.nestedState.sharedAccounts?.[this.network] || {};
-    
+    const legacyAccounts =
+      this.nestedState.sharedAccounts?.[this.network] || {};
+
     // Combine both sources
     const allAccounts = { ...legacyAccounts, ...testFileAccounts };
-    
+
     return Object.entries(allAccounts)
       .filter(([_, account]) => account !== undefined)
       .map(([type, account]) => `${type}: ${account!.address}`);
@@ -626,7 +711,7 @@ export class StateManager {
   getExistingPKP(): PKPState | undefined {
     // Ensure current config state is initialized
     this.getCurrentConfigState();
-    
+
     // Get PKP for this test file and network
     const testFilePkps = this.nestedState.testFiles[this.testFileName].pkps!;
     const existingPkp = testFilePkps[this.network];
@@ -643,7 +728,11 @@ export class StateManager {
     // Check for legacy shared PKP and migrate if exists
     const legacyPkp = this.nestedState.sharedPkps?.[this.network];
     if (legacyPkp && legacyPkp.network === this.network) {
-      console.log(chalk.blue(`🔄 Migrating shared PKP to ${this.testFileName}: ${legacyPkp.ethAddress}`));
+      console.log(
+        chalk.blue(
+          `🔄 Migrating shared PKP to ${this.testFileName}: ${legacyPkp.ethAddress}`
+        )
+      );
       testFilePkps[this.network] = legacyPkp;
       return legacyPkp;
     }
@@ -657,7 +746,7 @@ export class StateManager {
   savePKP(pkpInfo: PKPInfo): void {
     // Ensure current config state is initialized
     this.getCurrentConfigState();
-    
+
     // Save PKP for this test file and network
     const testFilePkps = this.nestedState.testFiles[this.testFileName].pkps!;
     testFilePkps[this.network] = {
@@ -666,7 +755,9 @@ export class StateManager {
       network: this.network,
     };
 
-    console.log(chalk.gray(`💾 Saved PKP for ${this.testFileName}: ${pkpInfo.ethAddress}`));
+    console.log(
+      chalk.gray(`💾 Saved PKP for ${this.testFileName}: ${pkpInfo.ethAddress}`)
+    );
   }
 
   /**
@@ -725,16 +816,16 @@ export class StateManager {
     return isValid;
   }
 
-
   /**
    * Get existing capacity credits or return undefined if needs minting
    */
   getExistingCapacityCredits(): CapacityCreditState | undefined {
     // Ensure current config state is initialized
     this.getCurrentConfigState();
-    
+
     // Get capacity credits for this test file and network
-    const testFileCC = this.nestedState.testFiles[this.testFileName].capacityCredits!;
+    const testFileCC =
+      this.nestedState.testFiles[this.testFileName].capacityCredits!;
     const existingCC = testFileCC[this.network];
 
     if (existingCC && existingCC.network === this.network) {
@@ -748,7 +839,9 @@ export class StateManager {
         return existingCC;
       } else {
         console.log(
-          chalk.yellow(`⚠️  Capacity credits found but expired/expiring soon for ${this.testFileName}`)
+          chalk.yellow(
+            `⚠️  Capacity credits found but expired/expiring soon for ${this.testFileName}`
+          )
         );
         console.log(
           chalk.yellow(`   ↳ Token ID: ${existingCC.capacityTokenIdStr}`)
@@ -760,7 +853,11 @@ export class StateManager {
     const legacyCC = this.nestedState.sharedCapacityCredits?.[this.network];
     if (legacyCC && legacyCC.network === this.network) {
       if (this.isCapacityCreditValid(legacyCC)) {
-        console.log(chalk.blue(`🔄 Migrating shared capacity credits to ${this.testFileName}: ${legacyCC.capacityTokenIdStr}`));
+        console.log(
+          chalk.blue(
+            `🔄 Migrating shared capacity credits to ${this.testFileName}: ${legacyCC.capacityTokenIdStr}`
+          )
+        );
         testFileCC[this.network] = legacyCC;
         return legacyCC;
       }
@@ -790,9 +887,10 @@ export class StateManager {
 
     // Ensure current config state is initialized
     this.getCurrentConfigState();
-    
+
     // Save capacity credits for this test file and network
-    const testFileCC = this.nestedState.testFiles[this.testFileName].capacityCredits!;
+    const testFileCC =
+      this.nestedState.testFiles[this.testFileName].capacityCredits!;
     testFileCC[this.network] = {
       ...capacityCreditInfo,
       network: this.network,
@@ -870,10 +968,11 @@ export class StateManager {
     // If no app in current config, search all configs for apps with same delegatee
     // This handles the case where the smart contract prevents the same delegatee from registering multiple apps
     if (this.nestedState.testFiles[this.testFileName]) {
-      const allConfigs = this.nestedState.testFiles[this.testFileName].configurations;
+      const allConfigs =
+        this.nestedState.testFiles[this.testFileName].configurations;
       for (const [configHash, config] of Object.entries(allConfigs)) {
         if (configHash === this.configHash) continue; // Skip current config (already checked)
-        
+
         const appInOtherConfig = config.state.vincentApp;
         if (
           appInOtherConfig &&
@@ -885,17 +984,25 @@ export class StateManager {
               `🏢 Found existing Vincent app in different config ${configHash}: ${appInOtherConfig.appId}`
             )
           );
-          console.log(chalk.yellow(`   ↳ Version: ${appInOtherConfig.appVersion}`));
-          console.log(chalk.yellow(`   ↳ Delegatee: ${appInOtherConfig.delegateeAddress}`));
-          console.log(chalk.yellow(`   ↳ Copying app to current config ${this.configHash}`));
-          
+          console.log(
+            chalk.yellow(`   ↳ Version: ${appInOtherConfig.appVersion}`)
+          );
+          console.log(
+            chalk.yellow(`   ↳ Delegatee: ${appInOtherConfig.delegateeAddress}`)
+          );
+          console.log(
+            chalk.yellow(
+              `   ↳ Copying app to current config ${this.configHash}`
+            )
+          );
+
           // Copy the app to current configuration since same delegatee can't register twice
           configState.state.vincentApp = {
             ...appInOtherConfig,
             // Update metadata to reflect current configuration
             createdAt: new Date().toISOString(),
           };
-          
+
           return appInOtherConfig;
         }
       }
@@ -931,7 +1038,11 @@ export class StateManager {
       network: this.network,
     };
 
-    console.log(chalk.green(`💾 Saved Vincent app for config ${this.configHash}: ${appId}`));
+    console.log(
+      chalk.green(
+        `💾 Saved Vincent app for config ${this.configHash}: ${appId}`
+      )
+    );
     console.log(chalk.green(`   ↳ Version: ${appVersion}`));
     console.log(chalk.green(`   ↳ Delegatee: ${delegateeAddress}`));
   }
@@ -964,14 +1075,21 @@ export class StateManager {
       // since we're reusing an existing app but with potentially different tools
       const configState = this.getCurrentConfigState();
       if (configState.state.vincentApp) {
-        console.log(chalk.blue(`🔄 Updating reused app ${existingApp.appId} with current tool/policy configuration`));
+        console.log(
+          chalk.blue(
+            `🔄 Updating reused app ${existingApp.appId} with current tool/policy configuration`
+          )
+        );
         configState.state.vincentApp.toolIpfsCids = toolIpfsCids;
         configState.state.vincentApp.toolPolicies = toolPolicies;
-        configState.state.vincentApp.toolPolicyParameterNames = toolPolicyParameterNames;
-        configState.state.vincentApp.toolPolicyParameterTypes = toolPolicyParameterTypes;
-        configState.state.vincentApp.toolPolicyParameterValues = toolPolicyParameterValues;
+        configState.state.vincentApp.toolPolicyParameterNames =
+          toolPolicyParameterNames;
+        configState.state.vincentApp.toolPolicyParameterTypes =
+          toolPolicyParameterTypes;
+        configState.state.vincentApp.toolPolicyParameterValues =
+          toolPolicyParameterValues;
       }
-      
+
       return {
         appId: existingApp.appId,
         appVersion: existingApp.appVersion,
@@ -1020,9 +1138,17 @@ export class StateManager {
     toolPolicyParameterValues: string[][]
   ): void {
     const configState = this.getCurrentConfigState();
-    if (configState.state.vincentApp && configState.state.vincentApp.appId === appId) {
-      configState.state.vincentApp.toolPolicyParameterValues = toolPolicyParameterValues;
-      console.log(chalk.green(`💾 Updated Vincent app parameter values for config ${this.configHash}: ${appId}`));
+    if (
+      configState.state.vincentApp &&
+      configState.state.vincentApp.appId === appId
+    ) {
+      configState.state.vincentApp.toolPolicyParameterValues =
+        toolPolicyParameterValues;
+      console.log(
+        chalk.green(
+          `💾 Updated Vincent app parameter values for config ${this.configHash}: ${appId}`
+        )
+      );
     }
   }
 
