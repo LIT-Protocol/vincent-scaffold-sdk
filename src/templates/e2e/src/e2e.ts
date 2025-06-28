@@ -19,7 +19,7 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
    * Initialise the environment
    * ====================================
    */
-  const { accounts, chainClient } = await init({
+  const { accounts } = await init({
     network: "datil",
     deploymentStatus: "dev",
   });
@@ -109,7 +109,7 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
    * 🦹‍♀️ (App Manager Account) Register Vincent app with delegatee
    * ====================================
    */
-  const { appId, appVersion } = await chainClient.registerApp({
+  const { appId, appVersion } = await accounts.appManager.registerApp({
     toolIpfsCids: appConfig.TOOL_IPFS_CIDS,
     toolPolicies: appConfig.TOOL_POLICIES,
     toolPolicyParameterNames: appConfig.TOOL_POLICY_PARAMETER_NAMES,
@@ -123,7 +123,7 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
    * 👦🏻 (Agent Wallet PKP Owner) Permit PKP to use the app version
    * ====================================
    */
-  await chainClient.permitAppVersion({
+  await accounts.agentWalletPkpOwner.permitAppVersion({
     pkpTokenId: agentWalletPkp.tokenId,
     appId,
     appVersion,
@@ -154,10 +154,10 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
 
   /**
    * ====================================
-   * Validate delegatee permissions (debugging)
+   * 🦹‍♀️ (App Manager Account) Validate delegatee permissions
    * ====================================
    */
-  const validation = await chainClient.validateToolExecution({
+  const validation = await accounts.appManager.validateToolExecution({
     delegateeAddress: accounts.delegatee.ethersWallet.address,
     pkpTokenId: agentWalletPkp.tokenId,
     toolIpfsCid: nativeSendTool.ipfsCid,

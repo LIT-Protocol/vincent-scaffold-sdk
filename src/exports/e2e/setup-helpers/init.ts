@@ -15,6 +15,9 @@ import { createContractsManager, ENV, StateManager } from "../managers";
 import {
   ChainClient,
   createChainClient,
+  createPermitAppVersionFunction,
+  createRegisterAppFunction,
+  createValidateToolExecutionFunction,
   PublicViemClientManager,
 } from "../managers/chain-client";
 import {
@@ -47,9 +50,14 @@ export interface InitAccounts {
       };
       toolAndPolicyIpfsCids: string[];
     }) => Promise<string[]>;
+    permitAppVersion: ReturnType<typeof createPermitAppVersionFunction>;
   };
   appManager: {
     viemWalletClient: ReturnType<typeof createWalletClient>;
+    registerApp: ReturnType<typeof createRegisterAppFunction>;
+    validateToolExecution: ReturnType<
+      typeof createValidateToolExecutionFunction
+    >;
   };
   delegatee: {
     ethersWallet: any; // ethers.Wallet type
@@ -373,14 +381,34 @@ export const init = async ({
           }
           return results;
         },
+        permitAppVersion: createPermitAppVersionFunction(
+          stateManager,
+          agentWalletPkpOwnerContractsManager,
+          publicViemClientManager
+        ),
       },
       appManager: {
         viemWalletClient: appManagerViemWalletClient,
+        registerApp: createRegisterAppFunction(
+          stateManager,
+          appManagerContractsManager,
+          publicViemClientManager,
+          delegateeAccount,
+          _deploymentStatus
+        ),
+        validateToolExecution: createValidateToolExecutionFunction(
+          appManagerContractsManager
+        ),
       },
       delegatee: {
         ethersWallet: delegateeEthersWallet,
       },
     },
+
+    // @deprecated - use individual functions instead
+    // eg. appManager.registerApp()
+    // eg. appManager.validateToolExecution()
+    // eg. agentWalletPkpOwner.permitAppVersion()
     chainClient: createChainClient(
       stateManager,
       appManagerContractsManager,

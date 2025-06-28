@@ -47,7 +47,7 @@ export interface ChainClient {
   }>;
 }
 
-const createRegisterAppFunction = (
+export const createRegisterAppFunction = (
   stateManager: StateManager,
   appManagerContractsManager: ReturnType<typeof createContractsManager>,
   publicViemClientManager: PublicViemClientManager,
@@ -185,7 +185,7 @@ const createRegisterAppFunction = (
   };
 };
 
-const createPermitAppVersionFunction = (
+export const createPermitAppVersionFunction = (
   stateManager: StateManager,
   agentWalletPkpOwnerContractsManager: ReturnType<
     typeof createContractsManager
@@ -379,7 +379,7 @@ const createPermitAppVersionFunction = (
   };
 };
 
-const createValidateToolExecutionFunction = (
+export const createValidateToolExecutionFunction = (
   appManagerContractsManager: ReturnType<typeof createContractsManager>
 ) => {
   return async ({
