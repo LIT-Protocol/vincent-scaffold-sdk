@@ -4,6 +4,63 @@ import { DEPLOYMENT_STATUS, MOCK_DATA, PARAMETER_TYPE } from "../constants";
 import { createContractsManager } from "./contracts-manager";
 import { StateManager } from "./state-manager";
 
+// Utility function to convert 2D arrays to 3D arrays as expected by smart contracts
+function convert2DTo3DArrays(
+  toolIpfsCids: string[],
+  toolPolicies: string[][],
+  toolPolicyParameterNames: string[][],
+  toolPolicyParameterTypes: number[][]
+): {
+  names3D: string[][][];
+  types3D: number[][][];
+} {
+  const names3D: string[][][] = [];
+  const types3D: number[][][] = [];
+
+  // For each tool
+  for (let toolIndex = 0; toolIndex < toolIpfsCids.length; toolIndex++) {
+    const toolNames: string[][] = [];
+    const toolTypes: number[][] = [];
+
+    // For each policy in this tool
+    const policies = toolPolicies[toolIndex];
+    for (
+      let policyIndex = 0;
+      policyIndex < policies.length;
+      policyIndex++
+    ) {
+      const policyNames: string[] = [];
+      const policyTypes: number[] = [];
+
+      // The 2D input structure maps: [tool][parameter] but we need [tool][policy][parameter]
+      // Since we have one policy per tool in most cases, we distribute parameters across the policy
+      if (
+        toolPolicyParameterNames[toolIndex] &&
+        toolPolicyParameterTypes[toolIndex]
+      ) {
+        // For the first (and usually only) policy, add all parameters for this tool
+        if (policyIndex === 0) {
+          // Add all parameter names and types for this tool to the first policy
+          for (let paramIndex = 0; paramIndex < toolPolicyParameterNames[toolIndex].length; paramIndex++) {
+            policyNames.push(toolPolicyParameterNames[toolIndex][paramIndex]);
+            policyTypes.push(toolPolicyParameterTypes[toolIndex][paramIndex]);
+          }
+        }
+        // For additional policies (if any), they would have empty parameters
+        // This matches the expected smart contract structure
+      }
+
+      toolNames.push(policyNames);
+      toolTypes.push(policyTypes);
+    }
+
+    names3D.push(toolNames);
+    types3D.push(toolTypes);
+  }
+
+  return { names3D, types3D };
+}
+
 // Type definitions
 export interface PublicViemClientManager {
   yellowstone: any; // PublicClient type
@@ -85,49 +142,12 @@ export const createRegisterAppFunction = (
       delegateeAddress,
       async () => {
         // Convert 2D arrays to 3D arrays as expected by the smart contract
-        const names3D: string[][][] = [];
-        const types3D: number[][][] = [];
-
-        // For each tool
-        for (let toolIndex = 0; toolIndex < toolIpfsCids.length; toolIndex++) {
-          const toolNames: string[][] = [];
-          const toolTypes: number[][] = [];
-
-          // For each policy in this tool
-          const policies = toolPolicies[toolIndex];
-          for (
-            let policyIndex = 0;
-            policyIndex < policies.length;
-            policyIndex++
-          ) {
-            const policyNames: string[] = [];
-            const policyTypes: number[] = [];
-
-            // The 2D input structure maps: [tool][parameter] but we need [tool][policy][parameter]
-            // Since we have one policy per tool in most cases, we distribute parameters across the policy
-            if (
-              toolPolicyParameterNames[toolIndex] &&
-              toolPolicyParameterTypes[toolIndex]
-            ) {
-              // For the first (and usually only) policy, add all parameters for this tool
-              if (policyIndex === 0) {
-                // Add all parameter names and types for this tool to the first policy
-                for (let paramIndex = 0; paramIndex < toolPolicyParameterNames[toolIndex].length; paramIndex++) {
-                  policyNames.push(toolPolicyParameterNames[toolIndex][paramIndex]);
-                  policyTypes.push(toolPolicyParameterTypes[toolIndex][paramIndex]);
-                }
-              }
-              // For additional policies (if any), they would have empty parameters
-              // This matches the expected smart contract structure
-            }
-
-            toolNames.push(policyNames);
-            toolTypes.push(policyTypes);
-          }
-
-          names3D.push(toolNames);
-          types3D.push(toolTypes);
-        }
+        const { names3D, types3D } = convert2DTo3DArrays(
+          toolIpfsCids,
+          toolPolicies,
+          toolPolicyParameterNames,
+          toolPolicyParameterTypes
+        );
 
         const versionTools = {
           toolIpfsCids,
@@ -180,49 +200,12 @@ export const createRegisterAppFunction = (
       async (appId: string) => {
         // Register next app version for existing app when tools/policies change
         // Convert 2D arrays to 3D arrays as expected by the smart contract
-        const names3D: string[][][] = [];
-        const types3D: number[][][] = [];
-
-        // For each tool
-        for (let toolIndex = 0; toolIndex < toolIpfsCids.length; toolIndex++) {
-          const toolNames: string[][] = [];
-          const toolTypes: number[][] = [];
-
-          // For each policy in this tool
-          const policies = toolPolicies[toolIndex];
-          for (
-            let policyIndex = 0;
-            policyIndex < policies.length;
-            policyIndex++
-          ) {
-            const policyNames: string[] = [];
-            const policyTypes: number[] = [];
-
-            // The 2D input structure maps: [tool][parameter] but we need [tool][policy][parameter]
-            // Since we have one policy per tool in most cases, we distribute parameters across the policy
-            if (
-              toolPolicyParameterNames[toolIndex] &&
-              toolPolicyParameterTypes[toolIndex]
-            ) {
-              // For the first (and usually only) policy, add all parameters for this tool
-              if (policyIndex === 0) {
-                // Add all parameter names and types for this tool to the first policy
-                for (let paramIndex = 0; paramIndex < toolPolicyParameterNames[toolIndex].length; paramIndex++) {
-                  policyNames.push(toolPolicyParameterNames[toolIndex][paramIndex]);
-                  policyTypes.push(toolPolicyParameterTypes[toolIndex][paramIndex]);
-                }
-              }
-              // For additional policies (if any), they would have empty parameters
-              // This matches the expected smart contract structure
-            }
-
-            toolNames.push(policyNames);
-            toolTypes.push(policyTypes);
-          }
-
-          names3D.push(toolNames);
-          types3D.push(toolTypes);
-        }
+        const { names3D, types3D } = convert2DTo3DArrays(
+          toolIpfsCids,
+          toolPolicies,
+          toolPolicyParameterNames,
+          toolPolicyParameterTypes
+        );
 
         const versionTools = {
           toolIpfsCids,
@@ -231,10 +214,6 @@ export const createRegisterAppFunction = (
           toolPolicyParameterTypes: types3D,
         };
 
-        console.log(
-          "🔍 Debug - registerNextAppVersion VersionTools object:",
-          JSON.stringify(versionTools, null, 2)
-        );
 
         const txHash =
           // @ts-ignore
@@ -299,55 +278,13 @@ export const createRegisterNextAppVersionFunction = (
     toolPolicyParameterTypes: number[][];
     toolPolicyParameterValues?: string[][];
   }) => {
-    console.log(`🔍 ChainClient Debug - registerNextAppVersion called with:`);
-    console.log(`🔍 ChainClient Debug - appId: ${appId}`);
-    console.log(`🔍 ChainClient Debug - toolIpfsCids:`, JSON.stringify(toolIpfsCids));
-    console.log(`🔍 ChainClient Debug - toolPolicies:`, JSON.stringify(toolPolicies));
-
     // Convert 2D arrays to 3D arrays as expected by the smart contract
-    const names3D: string[][][] = [];
-    const types3D: number[][][] = [];
-
-    // For each tool
-    for (let toolIndex = 0; toolIndex < toolIpfsCids.length; toolIndex++) {
-      const toolNames: string[][] = [];
-      const toolTypes: number[][] = [];
-
-      // For each policy in this tool
-      const policies = toolPolicies[toolIndex];
-      for (
-        let policyIndex = 0;
-        policyIndex < policies.length;
-        policyIndex++
-      ) {
-        const policyNames: string[] = [];
-        const policyTypes: number[] = [];
-
-        // The 2D input structure maps: [tool][parameter] but we need [tool][policy][parameter]
-        // Since we have one policy per tool in most cases, we distribute parameters across the policy
-        if (
-          toolPolicyParameterNames[toolIndex] &&
-          toolPolicyParameterTypes[toolIndex]
-        ) {
-          // For the first (and usually only) policy, add all parameters for this tool
-          if (policyIndex === 0) {
-            // Add all parameter names and types for this tool to the first policy
-            for (let paramIndex = 0; paramIndex < toolPolicyParameterNames[toolIndex].length; paramIndex++) {
-              policyNames.push(toolPolicyParameterNames[toolIndex][paramIndex]);
-              policyTypes.push(toolPolicyParameterTypes[toolIndex][paramIndex]);
-            }
-          }
-          // For additional policies (if any), they would have empty parameters
-          // This matches the expected smart contract structure
-        }
-
-        toolNames.push(policyNames);
-        toolTypes.push(policyTypes);
-      }
-
-      names3D.push(toolNames);
-      types3D.push(toolTypes);
-    }
+    const { names3D, types3D } = convert2DTo3DArrays(
+      toolIpfsCids,
+      toolPolicies,
+      toolPolicyParameterNames,
+      toolPolicyParameterTypes
+    );
 
     const versionTools = {
       toolIpfsCids,
@@ -355,11 +292,6 @@ export const createRegisterNextAppVersionFunction = (
       toolPolicyParameterNames: names3D,
       toolPolicyParameterTypes: types3D,
     };
-
-    console.log(
-      "🔍 Debug - registerNextAppVersion VersionTools object:",
-      JSON.stringify(versionTools, null, 2)
-    );
 
     const txHash =
       // @ts-ignore
@@ -373,16 +305,7 @@ export const createRegisterNextAppVersionFunction = (
       });
 
     const logs = parseEventLogs({
-      abi: [
-        {
-          type: "event",
-          name: "NewAppVersionRegistered",
-          inputs: [
-            { name: "appId", type: "uint256", indexed: true },
-            { name: "appVersion", type: "uint256", indexed: true },
-          ],
-        },
-      ],
+      abi: appManagerContractsManager.app.abi,
       logs: txReceipt.logs,
     });
 
@@ -433,7 +356,7 @@ export const createPermitAppVersionFunction = (
     ) {
       console.log(
         chalk.blue(
-          `�  Skipping permitAppVersion - PKP ${pkpTokenId} already permitted for app ${appId} v${appVersion}`
+          `⏭️  Skipping permitAppVersion - PKP ${pkpTokenId} already permitted for app ${appId} v${appVersion}`
         )
       );
       return { txHash: null, txReceipt: null, skipped: true };
