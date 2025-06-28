@@ -4,6 +4,63 @@ import { DEPLOYMENT_STATUS, MOCK_DATA, PARAMETER_TYPE } from "../constants";
 import { createContractsManager } from "./contracts-manager";
 import { StateManager } from "./state-manager";
 
+// Utility function to convert 2D arrays to 3D arrays as expected by smart contracts
+function convert2DTo3DArrays(
+  toolIpfsCids: string[],
+  toolPolicies: string[][],
+  toolPolicyParameterNames: string[][],
+  toolPolicyParameterTypes: number[][]
+): {
+  names3D: string[][][];
+  types3D: number[][][];
+} {
+  const names3D: string[][][] = [];
+  const types3D: number[][][] = [];
+
+  // For each tool
+  for (let toolIndex = 0; toolIndex < toolIpfsCids.length; toolIndex++) {
+    const toolNames: string[][] = [];
+    const toolTypes: number[][] = [];
+
+    // For each policy in this tool
+    const policies = toolPolicies[toolIndex];
+    for (
+      let policyIndex = 0;
+      policyIndex < policies.length;
+      policyIndex++
+    ) {
+      const policyNames: string[] = [];
+      const policyTypes: number[] = [];
+
+      // The 2D input structure maps: [tool][parameter] but we need [tool][policy][parameter]
+      // Since we have one policy per tool in most cases, we distribute parameters across the policy
+      if (
+        toolPolicyParameterNames[toolIndex] &&
+        toolPolicyParameterTypes[toolIndex]
+      ) {
+        // For the first (and usually only) policy, add all parameters for this tool
+        if (policyIndex === 0) {
+          // Add all parameter names and types for this tool to the first policy
+          for (let paramIndex = 0; paramIndex < toolPolicyParameterNames[toolIndex].length; paramIndex++) {
+            policyNames.push(toolPolicyParameterNames[toolIndex][paramIndex]);
+            policyTypes.push(toolPolicyParameterTypes[toolIndex][paramIndex]);
+          }
+        }
+        // For additional policies (if any), they would have empty parameters
+        // This matches the expected smart contract structure
+      }
+
+      toolNames.push(policyNames);
+      toolTypes.push(policyTypes);
+    }
+
+    names3D.push(toolNames);
+    types3D.push(toolTypes);
+  }
+
+  return { names3D, types3D };
+}
+
 // Type definitions
 export interface PublicViemClientManager {
   yellowstone: any; // PublicClient type
@@ -12,6 +69,14 @@ export interface PublicViemClientManager {
 
 export interface ChainClient {
   registerApp: (params: {
+    toolIpfsCids: string[];
+    toolPolicies: string[][];
+    toolPolicyParameterNames: string[][];
+    toolPolicyParameterTypes: number[][];
+    toolPolicyParameterValues?: string[][];
+  }) => Promise<{ appId: string; appVersion: string }>;
+  registerNextAppVersion: (params: {
+    appId: string;
     toolIpfsCids: string[];
     toolPolicies: string[][];
     toolPolicyParameterNames: string[][];
@@ -34,8 +99,8 @@ export interface ChainClient {
     toolIpfsCid: string;
   }) => Promise<{
     isPermitted: boolean;
-    appId: bigint;
-    appVersion: bigint;
+    appId: string;
+    appVersion: string;
     policies: Array<{
       policyIpfsCid: string;
       parameters: Array<{
@@ -67,50 +132,22 @@ export const createRegisterAppFunction = (
     toolPolicyParameterTypes: number[][];
     toolPolicyParameterValues?: string[][];
   }) => {
+    
+    // Set the real configuration hash based on tool/policy CIDs before any state operations
+    stateManager.setConfigurationFromCIDs(toolIpfsCids, toolPolicies);
+    
     const delegateeAddress = delegateeAccount.address;
 
-    const result = await stateManager.getOrRegisterVincentApp(
+    const result = await stateManager.getOrRegisterVincentAppVersioned(
       delegateeAddress,
       async () => {
         // Convert 2D arrays to 3D arrays as expected by the smart contract
-        const names3D: string[][][] = [];
-        const types3D: number[][][] = [];
-
-        // For each tool
-        for (let toolIndex = 0; toolIndex < toolIpfsCids.length; toolIndex++) {
-          const toolNames: string[][] = [];
-          const toolTypes: number[][] = [];
-
-          // For each policy in this tool
-          const policies = toolPolicies[toolIndex];
-          for (
-            let policyIndex = 0;
-            policyIndex < policies.length;
-            policyIndex++
-          ) {
-            const policyNames: string[] = [];
-            const policyTypes: number[] = [];
-
-            // In the 2D structure, we assume one parameter per policy
-            if (
-              toolPolicyParameterNames[toolIndex] &&
-              toolPolicyParameterNames[toolIndex][policyIndex] !== undefined
-            ) {
-              policyNames.push(
-                toolPolicyParameterNames[toolIndex][policyIndex]
-              );
-              policyTypes.push(
-                toolPolicyParameterTypes[toolIndex][policyIndex]
-              );
-            }
-
-            toolNames.push(policyNames);
-            toolTypes.push(policyTypes);
-          }
-
-          names3D.push(toolNames);
-          types3D.push(toolTypes);
-        }
+        const { names3D, types3D } = convert2DTo3DArrays(
+          toolIpfsCids,
+          toolPolicies,
+          toolPolicyParameterNames,
+          toolPolicyParameterTypes
+        );
 
         const versionTools = {
           toolIpfsCids,
@@ -119,10 +156,6 @@ export const createRegisterAppFunction = (
           toolPolicyParameterTypes: types3D,
         };
 
-        console.log(
-          "🔍 Debug - VersionTools object:",
-          JSON.stringify(versionTools, null, 2)
-        );
 
         const txHash =
           // @ts-ignore
@@ -145,16 +178,7 @@ export const createRegisterAppFunction = (
           });
 
         const logs = parseEventLogs({
-          abi: [
-            {
-              type: "event",
-              name: "NewAppRegistered",
-              inputs: [
-                { name: "appId", type: "uint256", indexed: true },
-                { name: "manager", type: "address", indexed: true },
-              ],
-            },
-          ],
+          abi: appManagerContractsManager.app.abi,
           logs: txReceipt.logs,
         });
 
@@ -173,6 +197,55 @@ export const createRegisterAppFunction = (
 
         return { appId, appVersion };
       },
+      async (appId: string) => {
+        // Register next app version for existing app when tools/policies change
+        // Convert 2D arrays to 3D arrays as expected by the smart contract
+        const { names3D, types3D } = convert2DTo3DArrays(
+          toolIpfsCids,
+          toolPolicies,
+          toolPolicyParameterNames,
+          toolPolicyParameterTypes
+        );
+
+        const versionTools = {
+          toolIpfsCids,
+          toolPolicies,
+          toolPolicyParameterNames: names3D,
+          toolPolicyParameterTypes: types3D,
+        };
+
+
+        const txHash =
+          // @ts-ignore
+          await appManagerContractsManager.app.write.registerNextAppVersion([
+            BigInt(appId),
+            versionTools,
+          ]);
+
+        const txReceipt =
+          await publicViemClientManager.yellowstone.waitForTransactionReceipt({
+            hash: txHash,
+          });
+
+        const logs = parseEventLogs({
+          abi: appManagerContractsManager.app.abi,
+          logs: txReceipt.logs,
+        });
+
+        const newAppVersionRegisteredEvent = logs.find(
+          (log) => log.eventName === "NewAppVersionRegistered"
+        );
+        if (!newAppVersionRegisteredEvent || !newAppVersionRegisteredEvent.args) {
+          throw new Error("Failed to find NewAppVersionRegistered event");
+        }
+
+        const appVersion = (newAppVersionRegisteredEvent.args as any).appVersion.toString();
+
+        console.log(chalk.green(` Registered Vincent app version: ${appId} v${appVersion}`));
+        console.log(chalk.green(`    Transaction: ${txHash}`));
+
+        return { appId, appVersion };
+      },
       toolIpfsCids,
       toolPolicies,
       toolPolicyParameterNames,
@@ -182,6 +255,73 @@ export const createRegisterAppFunction = (
 
     await stateManager.saveState();
     return result;
+  };
+};
+
+export const createRegisterNextAppVersionFunction = (
+  stateManager: StateManager,
+  appManagerContractsManager: ReturnType<typeof createContractsManager>,
+  publicViemClientManager: PublicViemClientManager
+) => {
+  return async ({
+    appId,
+    toolIpfsCids,
+    toolPolicies,
+    toolPolicyParameterNames,
+    toolPolicyParameterTypes,
+    toolPolicyParameterValues,
+  }: {
+    appId: string;
+    toolIpfsCids: string[];
+    toolPolicies: string[][];
+    toolPolicyParameterNames: string[][];
+    toolPolicyParameterTypes: number[][];
+    toolPolicyParameterValues?: string[][];
+  }) => {
+    // Convert 2D arrays to 3D arrays as expected by the smart contract
+    const { names3D, types3D } = convert2DTo3DArrays(
+      toolIpfsCids,
+      toolPolicies,
+      toolPolicyParameterNames,
+      toolPolicyParameterTypes
+    );
+
+    const versionTools = {
+      toolIpfsCids,
+      toolPolicies,
+      toolPolicyParameterNames: names3D,
+      toolPolicyParameterTypes: types3D,
+    };
+
+    const txHash =
+      // @ts-ignore
+      await appManagerContractsManager.app.write.registerNextAppVersion([
+        BigInt(appId),
+        versionTools,
+      ]);
+    const txReceipt =
+      await publicViemClientManager.yellowstone.waitForTransactionReceipt({
+        hash: txHash,
+      });
+
+    const logs = parseEventLogs({
+      abi: appManagerContractsManager.app.abi,
+      logs: txReceipt.logs,
+    });
+
+    const newAppVersionRegisteredEvent = logs.find(
+      (log) => log.eventName === "NewAppVersionRegistered"
+    );
+    if (!newAppVersionRegisteredEvent || !newAppVersionRegisteredEvent.args) {
+      throw new Error("Failed to find NewAppVersionRegistered event");
+    }
+
+    const appVersion = (newAppVersionRegisteredEvent.args as any).appVersion.toString();
+
+    console.log(chalk.green(` Registered Vincent app version: ${appId} v${appVersion}`));
+    console.log(chalk.green(`    Transaction: ${txHash}`));
+
+    return { appId, appVersion };
   };
 };
 
@@ -216,7 +356,7 @@ export const createPermitAppVersionFunction = (
     ) {
       console.log(
         chalk.blue(
-          `�  Skipping permitAppVersion - PKP ${pkpTokenId} already permitted for app ${appId} v${appVersion}`
+          `⏭️  Skipping permitAppVersion - PKP ${pkpTokenId} already permitted for app ${appId} v${appVersion}`
         )
       );
       return { txHash: null, txReceipt: null, skipped: true };
@@ -423,7 +563,12 @@ export const createValidateToolExecutionFunction = (
       chalk.blue(`   - App Version: ${validationResult.appVersion.toString()}`)
     );
 
-    return validationResult;
+    // Convert BigInt values to strings for JSON serialization
+    return {
+      ...validationResult,
+      appId: validationResult.appId.toString(),
+      appVersion: validationResult.appVersion.toString(),
+    };
   };
 };
 
@@ -444,6 +589,11 @@ export const createChainClient = (
       publicViemClientManager,
       delegateeAccount,
       deploymentStatus
+    ),
+    registerNextAppVersion: createRegisterNextAppVersionFunction(
+      stateManager,
+      appManagerContractsManager,
+      publicViemClientManager
     ),
     permitAppVersion: createPermitAppVersionFunction(
       stateManager,

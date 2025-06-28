@@ -3,7 +3,7 @@ import { formatEther, parseEther } from "viem";
 import { StateManager } from "../managers/state-manager";
 
 export async function setupAccount(
-  accountType: keyof StateManager["state"]["accounts"],
+  accountType: "appManager" | "appDelegatee" | "agentWalletPkpOwner",
   accountName: string,
   envPrivateKey: string | undefined,
   stateManager: StateManager,

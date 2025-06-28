@@ -1,6 +1,6 @@
 {
   "name": "@lit-protocol/vincent-scaffold-sdk",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Shared build configuration and utilities for Vincent tools and policies",
   "main": "index.js",
   "bin": {
@@ -59,7 +59,7 @@
   },
   "scripts": {
     "generate:abis": "dotenv -e .env -- sh -c 'abi-to-signature ./src/e2e/abis/VincentAppFacet.abi.json ./src/e2e/abis/generated --name vincentAppFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentAppViewFacet.abi.json ./src/e2e/abis/generated --name vincentAppViewFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentUserFacet.abi.json ./src/e2e/abis/generated --name vincentUserFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentUserViewFacet.abi.json ./src/e2e/abis/generated --name vincentUserViewFacetSignatures --address $VINCENT_ADDRESS'",
-    "build": "tsc",
+    "build": "tsc && npm run sync-versions",
     "prepublishOnly": "npm run validate && npm run sync-versions && npm run build",
     "validate": "node -c ./src/esbuild-share-config.js && node -c ./src/deno-fetch-shim.js",
     "sync-versions": "node vincent-scripts/sync-template-versions.js"
@@ -80,7 +80,6 @@
     "ipfs-only-hash": "^4.0.0",
     "inquirer": "^8.2.6",
     "chalk": "4.1.2",
-    "@ansonhkg/abi-extractor": "1.0.0",
     "@lit-protocol/contracts-sdk": "^7.2.0",
     "@wagmi/core": "^2.17.3",
     "ethers": "5.7.2",
@@ -89,7 +88,8 @@
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@ansonhkg/abi-extractor": "1.0.0"
   },
   "peerDependencies": {
     "@lit-protocol/vincent-tool-sdk": "*",

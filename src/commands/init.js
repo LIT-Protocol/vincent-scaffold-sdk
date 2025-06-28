@@ -510,7 +510,7 @@ async function initProject() {
     ]);
 
     if (!shouldOverwrite.overwrite) {
-      console.log(chalk.yellow("\n👋 Initialization cancelled"));
+    console.log(chalk.yellow("\n👋 Initialization cancelled"));
       return;
     }
   }
@@ -645,6 +645,9 @@ async function initProject() {
   );
   console.log(
     chalk.gray("4. Run npm run vincent:e2e to test your Vincent projects")
+  );
+  console.log(
+    chalk.gray(`YOLO. Run "npm install && npm run vincent:build && npm run vincent:e2e"`)
   );
   process.exit();
 }
