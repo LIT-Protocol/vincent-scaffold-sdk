@@ -76,8 +76,8 @@ export const mintCapacityCredits = async (
   await litContractClient.connect();
 
   const capacityCreditInfo = await _mintCapacityCredit(litContractClient, {
-    requestsPerKilosecond: 80,
-    daysUntilUTCMidnightExpiration: 25,
+    requestsPerKilosecond: 160,
+    daysUntilUTCMidnightExpiration: 5,
   });
 
   return capacityCreditInfo;

@@ -240,7 +240,13 @@ export const init = async ({
    * Initialize State Manager
    * ====================================
    */
-  const stateManager = new StateManager(network);
+  // Auto-detect test filename and use a temporary config hash that will be updated later
+  const detectedTestFileName = StateManager.autoDetectTestFileName();
+  const temporaryConfigHash = 'pending'; // Will be updated when configuration is provided
+  
+  console.log(`\n🏗️  Initialising E2E environment for ${detectedTestFileName} (configuration will be detected during app registration)`);
+  
+  const stateManager = new StateManager(network, detectedTestFileName, temporaryConfigHash);
   await stateManager.loadState();
 
   /**
@@ -420,3 +426,6 @@ export const init = async ({
     ethersAccounts: {},
   };
 };
+
+// Note: initWithConfig function removed since we now use appId-appVersion for configuration keys
+// The main init() function handles configuration switching automatically during app registration

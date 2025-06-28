@@ -72,6 +72,7 @@ export const createAppContract = (
     abi: [
       vincentAppFacetSignatures.methods.registerApp,
       vincentAppFacetSignatures.methods.removeDelegatee,
+      vincentAppFacetSignatures.methods.registerNextAppVersion,
       ...vincentAppFacetSignatures.events,
     ],
     client: { public: publicClient, wallet: walletClient },
