@@ -76,11 +76,13 @@ export const executeFailSchema = z.object({...});
 
 ### Available APIs
 
+This are available in the:
+
+- execute() hook inside the vincent policy
+- evaluate() hook inside the vincent tool
+
 ```typescript
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
-
-// ONLY available in execute/evaluate hooks (Lit Actions context)
-laUtils.chain.getYellowstoneProvider(); // Get blockchain provider
 laUtils.transaction.handler.contractCall(); // Execute contract calls
 laUtils.transaction.handler.nativeSend(); // Send native tokens
 laUtils.helpers.toEthAddress(); // Address utilities
@@ -116,38 +118,18 @@ vincent-packages/
         └── .gitignore
 ```
 
-### Template Variables
-
-When creating new components, use these template patterns:
-
-- `{{packageName}}` - Full package name (e.g., `@namespace/prefix-name`)
-- `{{name}}` - Component name (e.g., `my-tool`)
-- `{{namespace}}` - Package namespace (e.g., `@company`)
-- `{{camelCaseName}}` - CamelCase version of name
-
 ## 🛠️ Development Workflow
 
 ### Creating New Tools/Policies
 
 1. Use CLI: `npx @lit-protocol/vincent-scaffold-sdk add tool my-tool`
-2. Update schemas in `src/lib/schemas.ts`
-3. Implement logic in `src/lib/vincent-tool.ts` or `src/lib/vincent-policy.ts`
-4. Add helpers in `src/lib/helpers/index.ts` if needed
-5. Update root `package.json` build script
-6. Build: `npm run vincent:build`
-7. Test: `npm run vincent:e2e`
-
-### Build Script Updates
-
-When adding new components, MUST update root `package.json`:
-
-```json
-{
-  "scripts": {
-    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/my-policy && npm install && npm run build && cd ../../tools/my-tool && npm install && npm run build'"
-  }
-}
-```
+2. CD into the tool or policy directory
+3. Update schemas in `src/lib/schemas.ts`
+4. Implement logic in `src/lib/vincent-tool.ts` or `src/lib/vincent-policy.ts`
+5. Add helpers in `src/lib/helpers/index.ts` if needed
+6. Update root `package.json` build script
+7. Build: `npm run vincent:build`
+8. Test: `npm run vincent:e2e`
 
 ## 🧪 Testing & Validation
 
@@ -165,11 +147,15 @@ const result = await chainClient.executeTools({
 });
 ```
 
-### Required Test Commands
+### Test Commands
 
-- `npm run vincent:build` - Build all components
-- `npm run vincent:e2e` - Run end-to-end tests
-- `npm run vincent:reset` - Reset test state (when needed)
+```bash
+npm run vincent:hardreset         # Reset all state and rebuild
+npm run vincent:build              # Build all tools and policies
+npm run vincent:e2e:reset         # Reset E2E test state only
+npm run vincent:e2e               # Run native transfer E2E tests
+npm run vincent:e2e:erc20         # Run ERC-20 transfer E2E tests
+```
 
 ## 🎯 Best Practices
 

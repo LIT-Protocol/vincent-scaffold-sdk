@@ -37,14 +37,14 @@ const PACKAGES_CONFIG = {
 
 // AI Rules configuration - files to create/update during init
 const AI_RULES_CONFIG = {
-  // "AGENTS.md": { 
-  //   description: "General AI agents guidance",
-  //   sourcePath: path.join(__dirname, "..", "ai-rules", "AGENTS.md")
-  // },
-  // "CLAUDE.md": {
-  //   description: "Claude Code specific guidance", 
-  //   sourcePath: path.join(__dirname, "..", "ai-rules", "CLAUDE.md")
-  // },
+  "AGENTS.md": { 
+    description: "General AI agents guidance",
+    sourcePath: path.join(__dirname, "..", "ai-rules", "AGENTS.md")
+  },
+  "CLAUDE.md": {
+    description: "Claude Code specific guidance", 
+    sourcePath: path.join(__dirname, "..", "ai-rules", "CLAUDE.md")
+  },
   // "GEMINI.md": {
   //   description: "Google Gemini specific guidance",
   //   sourcePath: path.join(__dirname, "..", "ai-rules", "GEMINI.md")
