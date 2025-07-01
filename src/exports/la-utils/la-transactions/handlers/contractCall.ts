@@ -27,6 +27,7 @@ export const contractCall = async ({
   args,
   overrides = {},
   chainId,
+  gasBumpPercentage,
 }: {
   provider: any;
   pkpPublicKey: string;
@@ -40,6 +41,7 @@ export const contractCall = async ({
     gasLimit?: number;
   };
   chainId?: number;
+  gasBumpPercentage?: number;
 }) => {
   // Step 1: Encode function data using ethers Interface
   const iface = new ethers.utils.Interface(abi);
@@ -54,20 +56,28 @@ export const contractCall = async ({
     : ethers.BigNumber.from(0);
 
   // Step 2: Estimate gas using the provider
-  const estimatedGas = await provider.estimateGas({
-    from: fromAddress,
-    to: contractAddress,
-    data: encodedData,
-    value: txValue,
-  });
+  let gasLimit;
+  if (overrides.gasLimit) {
+    gasLimit = ethers.BigNumber.from(overrides.gasLimit.toString());
+  } else {
+    const estimatedGas = await provider.estimateGas({
+      from: fromAddress,
+      to: contractAddress,
+      data: encodedData,
+      value: txValue,
+    });
 
-  console.log("Estimated gas:", estimatedGas);
+    console.log("Estimated gas:", estimatedGas);
 
-  // If overrides include a custom gas, use it instead of adjustedGas.
-  // Note: ethers uses 'gasLimit' instead of 'gas'.
-  const gasLimit = overrides.gasLimit
-    ? ethers.BigNumber.from(overrides.gasLimit.toString())
-    : estimatedGas;
+    if (gasBumpPercentage) {
+      // Bump gas by the percentage specified.  Since we are using BigNumber, we need to add 100 to the percentage
+      // provided by the user, and then divide by 100 to get the final result.
+      gasLimit = estimatedGas.mul(gasBumpPercentage + 100).div(100);
+      console.log(`Bumped gas by ${gasBumpPercentage}% to ${gasLimit}`);
+    } else {
+      gasLimit = estimatedGas;
+    }
+  }
 
   console.log("Gas limit:", gasLimit);
 
