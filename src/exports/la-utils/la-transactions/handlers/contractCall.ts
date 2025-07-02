@@ -91,14 +91,18 @@ export const contractCall = async ({
       console.log("RunOnce Gas price:", gasPrice.toString());
 
       return JSON.stringify({
-        gasLimit,
-        gasPrice,
-        nonce,
+        gasLimit: gasLimit.toString(),
+        gasPrice: gasPrice.toString(),
+        nonce: nonce,
       });
     }
   );
 
-  const { gasLimit, gasPrice, nonce } = JSON.parse(gasParamsResponse);
+  const parsedGasParamsResponse = JSON.parse(gasParamsResponse);
+
+  const gasLimit = ethers.BigNumber.from(parsedGasParamsResponse.gasLimit);
+  const gasPrice = ethers.BigNumber.from(parsedGasParamsResponse.gasPrice);
+  const nonce = parseInt(parsedGasParamsResponse.nonce);
 
   // Craft the transaction object
   const tx = {
