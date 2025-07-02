@@ -55,35 +55,50 @@ export const contractCall = async ({
     ? ethers.BigNumber.from(overrides.value.toString())
     : ethers.BigNumber.from(0);
 
-  // Step 2: Estimate gas using the provider
-  let gasLimit;
-  if (overrides.gasLimit) {
-    gasLimit = ethers.BigNumber.from(overrides.gasLimit.toString());
-  } else {
-    const estimatedGas = await provider.estimateGas({
-      from: fromAddress,
-      to: contractAddress,
-      data: encodedData,
-      value: txValue,
-    });
+  const gasParamsResponse = await Lit.Actions.runOnce(
+    { waitForResponse: true, name: "gasParams" },
+    async () => {
+      // Step 2: Estimate gas using the provider
+      let gasLimit;
+      if (overrides.gasLimit) {
+        gasLimit = ethers.BigNumber.from(overrides.gasLimit.toString());
+      } else {
+        const estimatedGas = await provider.estimateGas({
+          from: fromAddress,
+          to: contractAddress,
+          data: encodedData,
+          value: txValue,
+        });
 
-    console.log("Estimated gas:", estimatedGas);
+        console.log("RunOnce Estimated gas:", estimatedGas);
 
-    if (gasBumpPercentage) {
-      // Bump gas by the percentage specified.  Since we are using BigNumber, we need to add 100 to the percentage
-      // provided by the user, and then divide by 100 to get the final result.
-      gasLimit = estimatedGas.mul(gasBumpPercentage + 100).div(100);
-      console.log(`Bumped gas by ${gasBumpPercentage}% to ${gasLimit}`);
-    } else {
-      gasLimit = estimatedGas;
+        if (gasBumpPercentage) {
+          // Bump gas by the percentage specified.  Since we are using BigNumber, we need to add 100 to the percentage
+          // provided by the user, and then divide by 100 to get the final result.
+          gasLimit = estimatedGas.mul(gasBumpPercentage + 100).div(100);
+          console.log(
+            `RunOnce Bumped gas by ${gasBumpPercentage}% to ${gasLimit}`
+          );
+        } else {
+          gasLimit = estimatedGas;
+        }
+      }
+
+      console.log("RunOnce Gas limit:", gasLimit);
+
+      const nonce = await provider.getTransactionCount(callerAddress);
+      const gasPrice = await provider.getGasPrice();
+      console.log("RunOnce Gas price:", gasPrice.toString());
+
+      return JSON.stringify({
+        gasLimit,
+        gasPrice,
+        nonce,
+      });
     }
-  }
+  );
 
-  console.log("Gas limit:", gasLimit);
-
-  const nonce = await provider.getTransactionCount(callerAddress);
-  const gasPrice = await provider.getGasPrice();
-  console.log("Gas price:", gasPrice.toString());
+  const { gasLimit, gasPrice, nonce } = JSON.parse(gasParamsResponse);
 
   // Craft the transaction object
   const tx = {
