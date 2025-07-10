@@ -132,10 +132,10 @@ export const createRegisterAppFunction = (
     toolPolicyParameterTypes: number[][];
     toolPolicyParameterValues?: string[][];
   }) => {
-    
+
     // Set the real configuration hash based on tool/policy CIDs before any state operations
     stateManager.setConfigurationFromCIDs(toolIpfsCids, toolPolicies);
-    
+
     const delegateeAddress = delegateeAccount.address;
 
     const result = await stateManager.getOrRegisterVincentAppVersioned(
@@ -380,86 +380,88 @@ export const createPermitAppVersionFunction = (
         const policyBytesValues: `0x${string}`[] = [];
         const policyNames: string[] = [];
 
-        // In the 2D structure, we assume one parameter per policy
-        if (
-          policyParameterValues[toolIndex] &&
+        // Handle multiple parameters per policy
+        if (policyParameterValues[toolIndex] &&
           policyParameterValues[toolIndex][policyIndex] !== undefined
         ) {
-          const value = policyParameterValues[toolIndex][policyIndex];
-          const paramName = policyParameterNames[toolIndex][policyIndex];
-          const paramType = policyParameterTypes[toolIndex][policyIndex];
+          const toolParameterValues = policyParameterValues[toolIndex];
+          const toolParameterNames = policyParameterNames[toolIndex];
+          const toolParameterTypes = policyParameterTypes[toolIndex];
 
-          // console.log(`🔍 Encoding - tool:${toolIndex}, policy:${policyIndex}`);
-          // console.log(`🔍 Encoding - value: "${value}"`);
-          // console.log(`🔍 Encoding - paramType: ${paramType}`);
+          // For each parameter in this policy
+          for (let paramIndex = 0; paramIndex < toolParameterValues.length; paramIndex++) {
+            const value = toolParameterValues[paramIndex];
+            const paramName = toolParameterNames[paramIndex];
+            const paramType = toolParameterTypes[paramIndex];
 
-          // Map parameter type ID to ABI type
-          let abiType: string;
-          let encodedValue: any = value;
+            // Map parameter type ID to ABI type
+            let abiType: string;
+            let encodedValue: any = value;
 
-          switch (paramType) {
-            case PARAMETER_TYPE.INT256:
-              abiType = "int256";
-              encodedValue = BigInt(value);
-              break;
-            case PARAMETER_TYPE.INT256_ARRAY:
-              abiType = "int256[]";
-              encodedValue = JSON.parse(value).map((v: string) => BigInt(v));
-              break;
-            case PARAMETER_TYPE.UINT256:
-              abiType = "uint256";
-              encodedValue = BigInt(value);
-              break;
-            case PARAMETER_TYPE.UINT256_ARRAY:
-              abiType = "uint256[]";
-              encodedValue = JSON.parse(value).map((v: string) => BigInt(v));
-              break;
-            case PARAMETER_TYPE.BOOL:
-              abiType = "bool";
-              encodedValue = value.toLowerCase() === "true";
-              break;
-            case PARAMETER_TYPE.BOOL_ARRAY:
-              abiType = "bool[]";
-              encodedValue = JSON.parse(value).map(
-                (v: string) => v.toLowerCase() === "true"
-              );
-              break;
-            case PARAMETER_TYPE.ADDRESS:
-              abiType = "address";
-              encodedValue = value as `0x${string}`;
-              break;
-            case PARAMETER_TYPE.ADDRESS_ARRAY:
-              abiType = "address[]";
-              encodedValue = JSON.parse(value) as `0x${string}`[];
-              break;
-            case PARAMETER_TYPE.STRING:
-              abiType = "string";
-              encodedValue = value;
-              break;
-            case PARAMETER_TYPE.STRING_ARRAY:
-              abiType = "string[]";
-              encodedValue = JSON.parse(value);
-              break;
-            case PARAMETER_TYPE.BYTES:
-              abiType = "bytes";
-              encodedValue = value as `0x${string}`;
-              break;
-            case PARAMETER_TYPE.BYTES_ARRAY:
-              abiType = "bytes[]";
-              encodedValue = JSON.parse(value) as `0x${string}`[];
-              break;
-            default:
-              throw new Error(`Unsupported parameter type: ${paramType}`);
+            switch (paramType) {
+              case PARAMETER_TYPE.INT256:
+                abiType = "int256";
+                encodedValue = BigInt(value);
+                break;
+              case PARAMETER_TYPE.INT256_ARRAY:
+                abiType = "int256[]";
+                encodedValue = JSON.parse(value).map((v: string) => BigInt(v));
+                break;
+              case PARAMETER_TYPE.UINT256:
+                abiType = "uint256";
+                encodedValue = BigInt(value);
+                break;
+              case PARAMETER_TYPE.UINT256_ARRAY:
+                abiType = "uint256[]";
+                encodedValue = JSON.parse(value).map((v: string) => BigInt(v));
+                break;
+              case PARAMETER_TYPE.BOOL:
+                abiType = "bool";
+                encodedValue = value.toLowerCase() === "true";
+                break;
+              case PARAMETER_TYPE.BOOL_ARRAY:
+                abiType = "bool[]";
+                encodedValue = JSON.parse(value).map(
+                  (v: string) => v.toLowerCase() === "true"
+                );
+                break;
+              case PARAMETER_TYPE.ADDRESS:
+                abiType = "address";
+                encodedValue = value as `0x${string}`;
+                break;
+              case PARAMETER_TYPE.ADDRESS_ARRAY:
+                abiType = "address[]";
+                encodedValue = JSON.parse(value) as `0x${string}`[];
+                break;
+              case PARAMETER_TYPE.STRING:
+                abiType = "string";
+                encodedValue = value;
+                break;
+              case PARAMETER_TYPE.STRING_ARRAY:
+                abiType = "string[]";
+                encodedValue = JSON.parse(value);
+                break;
+              case PARAMETER_TYPE.BYTES:
+                abiType = "bytes";
+                encodedValue = value as `0x${string}`;
+                break;
+              case PARAMETER_TYPE.BYTES_ARRAY:
+                abiType = "bytes[]";
+                encodedValue = JSON.parse(value) as `0x${string}`[];
+                break;
+              default:
+                throw new Error(`Unsupported parameter type: ${paramType}`);
+            }
+
+            // Properly ABI encode the value
+            const encoded = encodeAbiParameters(
+              [{ type: abiType }],
+              [encodedValue]
+            );
+
+            policyBytesValues.push(encoded);
+            policyNames.push(paramName);
           }
-
-          // Properly ABI encode the value
-          const encoded = encodeAbiParameters(
-            [{ type: abiType }],
-            [encodedValue]
-          );
-
-          policyBytesValues.push(encoded);
-          policyNames.push(paramName);
         }
 
         toolBytesValues.push(policyBytesValues);
