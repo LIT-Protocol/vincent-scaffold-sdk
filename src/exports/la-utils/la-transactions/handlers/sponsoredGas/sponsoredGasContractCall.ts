@@ -63,56 +63,28 @@ export const sponsoredGasContractCall = async ({
     );
   }
 
-  return await executeContractCallWithEIP7702({
-    pkpPublicKey,
-    callerAddress,
-    contractAddress,
-    overrides,
-    chainId,
-    eip7702AlchemyApiKey,
-    eip7702AlchemyPolicyId,
-    encodedData,
-  });
-};
-
-async function executeContractCallWithEIP7702({
-  pkpPublicKey,
-  callerAddress,
-  contractAddress,
-  overrides,
-  chainId,
-  eip7702AlchemyApiKey,
-  eip7702AlchemyPolicyId,
-  encodedData,
-}: {
-  pkpPublicKey: string;
-  callerAddress: string;
-  contractAddress: string;
-  overrides: any;
-  chainId: number;
-  eip7702AlchemyApiKey: string;
-  eip7702AlchemyPolicyId: string;
-  encodedData: string;
-}) {
-  console.log("Executing contract call with EIP7702 with params:", {
-    pkpPublicKey,
-    callerAddress,
-    contractAddress,
-    overrides,
-    chainId,
-  });
-
-  // Create the Smart Account Client with EIP-7702 mode
-  const smartAccountClient = await createAlchemySmartAccountClient({
-    alchemyApiKey: eip7702AlchemyApiKey,
-    chainId,
-    pkpPublicKey,
-    policyId: eip7702AlchemyPolicyId,
-  });
-  console.log("Smart account client created");
-
   // Convert value override if exists to BigNumber
   const txValue = overrides.value ? BigInt(overrides.value.toString()) : 0n;
+
+  // Create LitActionsSmartSigner for EIP-7702
+  const litSigner = new LitActionsSmartSigner({
+    pkpPublicKey,
+    chainId,
+  });
+
+  // Get the Alchemy chain configuration
+  const alchemyChain = getAlchemyChainConfig(chainId);
+
+  // Create the Smart Account Client with EIP-7702 mode
+  const smartAccountClient = await createModularAccountV2Client({
+    mode: "7702" as const,
+    transport: alchemy({ apiKey: eip7702AlchemyApiKey }),
+    chain: alchemyChain,
+    signer: litSigner,
+    policyId: eip7702AlchemyPolicyId,
+  });
+
+  console.log("Smart account client created");
 
   // Prepare the user operation
   const userOperation = {
@@ -215,33 +187,4 @@ async function executeContractCallWithEIP7702({
   }
 
   return uoHash;
-}
-
-async function createAlchemySmartAccountClient({
-  alchemyApiKey,
-  chainId,
-  pkpPublicKey,
-  policyId,
-}: {
-  alchemyApiKey: string;
-  chainId: number;
-  pkpPublicKey: string;
-  policyId: string;
-}) {
-  // Create LitActionsSmartSigner for EIP-7702
-  const litSigner = new LitActionsSmartSigner({
-    pkpPublicKey,
-    chainId,
-  });
-
-  // Get the Alchemy chain configuration
-  const alchemyChain = getAlchemyChainConfig(chainId);
-
-  return await createModularAccountV2Client({
-    mode: "7702" as const,
-    transport: alchemy({ apiKey: alchemyApiKey }),
-    chain: alchemyChain,
-    signer: litSigner,
-    policyId,
-  });
-}
+};
