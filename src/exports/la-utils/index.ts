@@ -1,5 +1,7 @@
 import { yellowstoneConfig } from "./la-chain/yellowstone/yellowstoneConfig";
 import { contractCall } from "./la-transactions/handlers/contractCall";
+import { sponsoredGasContractCall } from "./la-transactions/handlers/sponsoredGas/sponsoredGasContractCall";
+import { getAlchemyChainConfig } from "./la-helpers/getAlchemyChainConfig";
 import { nativeSend } from "./la-transactions/handlers/nativeSend";
 import { getNonce } from "./la-transactions/primitive/getNonce";
 import { sendTx } from "./la-transactions/primitive/sendTx";
@@ -10,6 +12,7 @@ import { toEthAddress } from "./la-helpers/toEthAddress";
 export {
   yellowstoneConfig,
   contractCall,
+  sponsoredGasContractCall,
   nativeSend,
   getNonce,
   sendTx,
@@ -25,6 +28,7 @@ export const laUtils = {
   transaction: {
     handler: {
       contractCall,
+      sponsoredGasContractCall,
       nativeSend,
     },
     primitive: {
@@ -35,6 +39,7 @@ export const laUtils = {
   },
   helpers: {
     toEthAddress,
+    getAlchemyChainConfig,
   },
 };
 

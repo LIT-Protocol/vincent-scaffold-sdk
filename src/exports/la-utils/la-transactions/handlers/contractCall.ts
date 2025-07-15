@@ -15,6 +15,7 @@ import { sendTx } from "../primitive/sendTx";
  * @param args - The arguments to pass to the function
  * @param overrides - Optional transaction overrides (value, gasLimit)
  * @param chainId - Optional chain ID (defaults to yellowstoneConfig.id)
+ * @param gasBumpPercentage - Optional gas bump percentage (defaults to 0)
  * @returns The transaction hash
  */
 export const contractCall = async ({
