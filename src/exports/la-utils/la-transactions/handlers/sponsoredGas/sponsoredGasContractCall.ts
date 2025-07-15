@@ -10,7 +10,7 @@ import { getAlchemyChainConfig } from "../../../la-helpers/getAlchemyChainConfig
  * @param pkpPublicKey - The PKP public key for transaction signing
  * @param pkpEthAddress - The ethereum address derived from PKP
  * @param abi - The ABI of the contract function
- * @param address - The contract address
+ * @param contractAddress - The contract address
  * @param functionName - The name of the function to call
  * @param args - The arguments to pass to the function
  * @param overrides - Optional transaction overrides (value)
