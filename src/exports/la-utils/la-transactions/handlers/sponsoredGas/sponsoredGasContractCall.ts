@@ -1,51 +1,7 @@
-import {
-  alchemy,
-  arbitrum,
-  arbitrumGoerli,
-  arbitrumNova,
-  arbitrumSepolia,
-  base,
-  baseGoerli,
-  baseSepolia,
-  fraxtal,
-  fraxtalSepolia,
-  goerli,
-  mainnet,
-  optimism,
-  optimismGoerli,
-  optimismSepolia,
-  polygon,
-  polygonAmoy,
-  polygonMumbai,
-  sepolia,
-  shape,
-  shapeSepolia,
-  worldChain,
-  worldChainSepolia,
-  zora,
-  zoraSepolia,
-  beraChainBartio,
-  opbnbMainnet,
-  opbnbTestnet,
-  soneiumMinato,
-  soneiumMainnet,
-  unichainMainnet,
-  unichainSepolia,
-  inkMainnet,
-  inkSepolia,
-  mekong,
-  monadTestnet,
-  openlootSepolia,
-  gensynTestnet,
-  riseTestnet,
-  storyMainnet,
-  storyAeneid,
-  celoAlfajores,
-  celoMainnet,
-  teaSepolia,
-} from "@account-kit/infra";
+import { alchemy } from "@account-kit/infra";
 import { LitActionsSmartSigner } from "./litActionSmartSigner";
 import { createModularAccountV2Client } from "@account-kit/smart-contracts";
+import { getAlchemyChainConfig } from "../../../la-helpers/getAlchemyChainConfig";
 
 /**
  * Handler function for making contract calls
@@ -57,9 +13,11 @@ import { createModularAccountV2Client } from "@account-kit/smart-contracts";
  * @param address - The contract address
  * @param functionName - The name of the function to call
  * @param args - The arguments to pass to the function
- * @param overrides - Optional transaction overrides (value, gasLimit)
+ * @param overrides - Optional transaction overrides (value)
  * @param chainId - Optional chain ID (defaults to yellowstoneConfig.id)
- * @returns The transaction hash
+ * @param eip7702AlchemyApiKey - The Alchemy API key for gas sponsorship
+ * @param eip7702AlchemyPolicyId - The Alchemy policy ID for gas sponsorship
+ * @returns The UserOperation hash.  You must use the alchemy smartAccountClient.waitForUserOperationTransaction() to convert the userOp into a txHash.
  */
 export const sponsoredGasContractCall = async ({
   pkpPublicKey,
@@ -70,7 +28,6 @@ export const sponsoredGasContractCall = async ({
   args,
   overrides = {},
   chainId,
-  gasBumpPercentage,
   eip7702AlchemyApiKey,
   eip7702AlchemyPolicyId,
 }: {
@@ -85,7 +42,6 @@ export const sponsoredGasContractCall = async ({
     gasLimit?: number;
   };
   chainId?: number;
-  gasBumpPercentage?: number;
   eip7702AlchemyApiKey?: string;
   eip7702AlchemyPolicyId?: string;
 }) => {
@@ -113,7 +69,6 @@ export const sponsoredGasContractCall = async ({
     contractAddress,
     overrides,
     chainId,
-    gasBumpPercentage,
     eip7702AlchemyApiKey,
     eip7702AlchemyPolicyId,
     encodedData,
@@ -126,7 +81,6 @@ async function executeContractCallWithEIP7702({
   contractAddress,
   overrides,
   chainId,
-  gasBumpPercentage,
   eip7702AlchemyApiKey,
   eip7702AlchemyPolicyId,
   encodedData,
@@ -136,7 +90,6 @@ async function executeContractCallWithEIP7702({
   contractAddress: string;
   overrides: any;
   chainId: number;
-  gasBumpPercentage?: number;
   eip7702AlchemyApiKey: string;
   eip7702AlchemyPolicyId: string;
   encodedData: string;
@@ -147,7 +100,6 @@ async function executeContractCallWithEIP7702({
     contractAddress,
     overrides,
     chainId,
-    gasBumpPercentage,
   });
 
   // Create the Smart Account Client with EIP-7702 mode
@@ -292,61 +244,4 @@ async function createAlchemySmartAccountClient({
     signer: litSigner,
     policyId,
   });
-}
-
-/**
- * Helper function to get Alchemy chain configuration
- * Supports all chains exported from AlchemyInfra by mapping chainId to the corresponding chain object.
- */
-function getAlchemyChainConfig(chainId: number) {
-  // Map of chainId to chain object
-  const chainMap: Record<number, any> = {
-    [1]: mainnet,
-    [5]: goerli,
-    [10]: optimism,
-    [420]: optimismGoerli,
-    [11155420]: optimismSepolia,
-    [11155111]: sepolia,
-    [137]: polygon,
-    [80001]: polygonMumbai,
-    [8453]: base,
-    [84531]: baseGoerli,
-    [84532]: baseSepolia,
-    [42161]: arbitrum,
-    [42170]: arbitrumNova,
-    [421613]: arbitrumGoerli,
-    [421614]: arbitrumSepolia,
-    [1101]: polygonAmoy,
-    [324]: zora, // If zora is mainnet
-    [999]: zoraSepolia, // If zoraSepolia is testnet
-    [252]: fraxtal, // Fraxtal mainnet
-    [2523]: fraxtalSepolia,
-    [480]: worldChain,
-    [4801]: worldChainSepolia,
-    [360]: shape,
-    [11011]: shapeSepolia,
-    [130]: unichainMainnet,
-    [1301]: unichainSepolia,
-    [1946]: soneiumMinato,
-    [1868]: soneiumMainnet,
-    [204]: opbnbMainnet,
-    [5611]: opbnbTestnet,
-    [80084]: beraChainBartio,
-    [57073]: inkMainnet,
-    [763373]: inkSepolia,
-    [7078815900]: mekong,
-    [10143]: monadTestnet,
-    [905905]: openlootSepolia,
-    [685685]: gensynTestnet,
-    [11155931]: riseTestnet,
-    [1514]: storyMainnet,
-    [1315]: storyAeneid,
-    [44787]: celoAlfajores,
-    [42220]: celoMainnet,
-    [10218]: teaSepolia,
-    // Add more mappings as new chains are supported
-  };
-
-  // Return the chain config if found, otherwise default to mainnet
-  return chainMap[chainId] || mainnet;
 }

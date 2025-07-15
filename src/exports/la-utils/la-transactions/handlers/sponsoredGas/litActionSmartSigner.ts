@@ -10,18 +10,9 @@
  * const signer = new LitActionsSmartSigner({
  *   pkpPublicKey,
  *   chainId,
- *   laUtils,
  * });
  *
- * // Use with Alchemy's Smart Account Client
- * const smartAccountClient = await createSmartAccountClient({
- *   apiKey: "your-api-key",
- *   chain: sepolia,
- *   signer,
- *   gasManagerConfig: {
- *     policyId: "your-policy-id",
- *   },
- * });
+ * // Use with Alchemy's Smart Account Client, and pass as the signer.
  * ```
  */
 export interface LitActionsSmartSignerConfig {
