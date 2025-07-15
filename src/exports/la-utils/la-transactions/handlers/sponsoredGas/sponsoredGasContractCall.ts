@@ -21,7 +21,6 @@ import { getAlchemyChainConfig } from "../../../la-helpers/getAlchemyChainConfig
  */
 export const sponsoredGasContractCall = async ({
   pkpPublicKey,
-  callerAddress,
   abi,
   contractAddress,
   functionName,
@@ -32,7 +31,6 @@ export const sponsoredGasContractCall = async ({
   eip7702AlchemyPolicyId,
 }: {
   pkpPublicKey: string;
-  callerAddress: string;
   abi: any[];
   contractAddress: string;
   functionName: string;
