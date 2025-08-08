@@ -165,10 +165,12 @@ export class LitActionsSmartSigner implements SmartAccountSigner {
         ethers.utils.RLP.encode([
           ethers.utils.hexlify(chainId),
           contractAddress,
-          ethers.utils.hexlify(nonce),
+          nonce ? ethers.utils.hexlify(nonce) : "0x",
         ]),
       ])
     );
+
+    // console.log("hash in signAuthorization", hash);
 
     const sig = await Lit.Actions.signAndCombineEcdsa({
       toSign: ethers.utils.arrayify(hash),

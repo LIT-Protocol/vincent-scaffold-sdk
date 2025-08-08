@@ -148,7 +148,7 @@ export const sponsoredGasContractCall = async ({
 
   // getting the entry point from the smart account client so we can send the user operation
   const entryPoint = smartAccountClient.account.getEntryPoint();
-  console.log("Entry point", entryPoint);
+  // console.log("Entry point", entryPoint);
 
   // send the user operation with EIP-7702 delegation in a runOnce
   // so that we don't submit it more than once
