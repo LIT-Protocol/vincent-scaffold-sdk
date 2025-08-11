@@ -29,6 +29,7 @@ export const sponsoredGasContractCall = async ({
   chainId,
   eip7702AlchemyApiKey,
   eip7702AlchemyPolicyId,
+  eip7702WaitForBundleTx,
 }: {
   pkpPublicKey: string;
   abi: any[];
@@ -39,9 +40,10 @@ export const sponsoredGasContractCall = async ({
     value?: string | number | bigint;
     gasLimit?: number;
   };
-  chainId?: number;
-  eip7702AlchemyApiKey?: string;
-  eip7702AlchemyPolicyId?: string;
+  chainId: number;
+  eip7702AlchemyApiKey: string;
+  eip7702AlchemyPolicyId: string;
+  eip7702WaitForBundleTx?: boolean;
 }) => {
   // Step 1: Encode function data using ethers Interface
   const iface = new ethers.utils.Interface(abi);
@@ -152,7 +154,7 @@ export const sponsoredGasContractCall = async ({
 
   // send the user operation with EIP-7702 delegation in a runOnce
   // so that we don't submit it more than once
-  const uoHash = await Lit.Actions.runOnce(
+  const sendWithAlchemyResult = await Lit.Actions.runOnce(
     {
       waitForResponse: true,
       name: "sendWithAlchemy",
@@ -160,29 +162,36 @@ export const sponsoredGasContractCall = async ({
     async () => {
       try {
         // Send the user operation with EIP-7702 delegation
-        const userOpResult = await smartAccountClient.sendRawUserOperation(
+        const userOpHash = await smartAccountClient.sendRawUserOperation(
           signedUserOperation,
           entryPoint.address
         );
 
         console.log(
           `[@lit-protocol/vincent-tool-morpho/executeOperationWithGasSponsorship] User operation sent`,
-          { userOpHash: userOpResult }
+          { userOpHash }
         );
 
-        return userOpResult;
+        const bundleHash = eip7702WaitForBundleTx ? await smartAccountClient.waitForUserOperationTransaction({
+          hash: userOpHash,
+        }) : undefined;
+
+        return JSON.stringify({ bundleHash, userOpHash });
       } catch (e: any) {
         console.log("Failed to send user operation, error below");
         console.log(e);
         console.log(e.stack);
-        return "";
+        // Failure could be just timeout waiting for the userOp to be mined, so we return whatever we have anyway
+        return JSON.stringify({ bundleHash, userOpHash });
       }
     }
   );
 
-  if (uoHash === "") {
+  const { bundleHash, userOpHash } = JSON.parse(sendWithAlchemyResult);
+
+  if (userOpHash === "") {
     throw new Error("Failed to send user operation");
   }
 
-  return uoHash;
+  return eip7702WaitForBundleTx ? userOpHash : { bundleHash, userOpHash };
 };
