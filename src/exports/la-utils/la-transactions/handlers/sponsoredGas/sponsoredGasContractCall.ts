@@ -17,7 +17,6 @@ import { getAlchemyChainConfig } from "../../../la-helpers/getAlchemyChainConfig
  * @param chainId - Chain ID (defaults to yellowstoneConfig.id)
  * @param eip7702AlchemyApiKey - The Alchemy API key for gas sponsorship
  * @param eip7702AlchemyPolicyId - The Alchemy policy ID for gas sponsorship
- * @param eip7702WaitForBundleTx - Optional flag to wait for the bundle transaction to be mined. Defaults to false.
  * @returns The UserOperation hash.  You must use the alchemy smartAccountClient.waitForUserOperationTransaction() to convert the userOp into a txHash.
  */
 export const sponsoredGasContractCall = async ({
@@ -30,7 +29,6 @@ export const sponsoredGasContractCall = async ({
   chainId,
   eip7702AlchemyApiKey,
   eip7702AlchemyPolicyId,
-  eip7702WaitForBundleTx,
 }: {
   pkpPublicKey: string;
   abi: any[];
@@ -44,7 +42,6 @@ export const sponsoredGasContractCall = async ({
   chainId: number;
   eip7702AlchemyApiKey: string;
   eip7702AlchemyPolicyId: string;
-  eip7702WaitForBundleTx?: boolean;
 }) => {
   // Step 1: Encode function data using ethers Interface
   const iface = new ethers.utils.Interface(abi);
@@ -155,7 +152,7 @@ export const sponsoredGasContractCall = async ({
 
   // send the user operation with EIP-7702 delegation in a runOnce
   // so that we don't submit it more than once
-  const sendWithAlchemyResult = await Lit.Actions.runOnce(
+  const uoHash = await Lit.Actions.runOnce(
     {
       waitForResponse: true,
       name: "sendWithAlchemy",
@@ -163,36 +160,29 @@ export const sponsoredGasContractCall = async ({
     async () => {
       try {
         // Send the user operation with EIP-7702 delegation
-        const userOpHash = await smartAccountClient.sendRawUserOperation(
+        const userOpResult = await smartAccountClient.sendRawUserOperation(
           signedUserOperation,
           entryPoint.address
         );
 
         console.log(
           `[@lit-protocol/vincent-tool-morpho/executeOperationWithGasSponsorship] User operation sent`,
-          { userOpHash }
+          { userOpHash: userOpResult }
         );
 
-        const bundleHash = eip7702WaitForBundleTx ? await smartAccountClient.waitForUserOperationTransaction({
-          hash: userOpHash,
-        }) : undefined;
-
-        return JSON.stringify({ bundleHash, userOpHash });
+        return userOpResult;
       } catch (e: any) {
         console.log("Failed to send user operation, error below");
         console.log(e);
         console.log(e.stack);
-        // Failure could be just timeout waiting for the userOp to be mined, so we return whatever we have anyway
-        return JSON.stringify({ bundleHash, userOpHash });
+        return "";
       }
     }
   );
 
-  const { bundleHash, userOpHash } = JSON.parse(sendWithAlchemyResult);
-
-  if (userOpHash === "") {
+  if (uoHash === "") {
     throw new Error("Failed to send user operation");
   }
 
-  return eip7702WaitForBundleTx ? userOpHash : { bundleHash, userOpHash };
+  return uoHash;
 };
