@@ -1,3 +1,5 @@
+import { ethers } from "ethers";
+
 import { yellowstoneConfig } from "../../la-chain/yellowstone/yellowstoneConfig";
 import { signTx } from "../primitive/signTx";
 import { sendTx } from "../primitive/sendTx";
@@ -30,7 +32,7 @@ export const contractCall = async ({
   chainId,
   gasBumpPercentage,
 }: {
-  provider: any;
+  provider: ethers.providers.JsonRpcProvider;
   pkpPublicKey: string;
   callerAddress: string;
   abi: any[];

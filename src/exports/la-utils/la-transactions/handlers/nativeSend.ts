@@ -1,3 +1,5 @@
+import { ethers } from "ethers";
+
 import { signTx } from "../primitive/signTx";
 import { sendTx } from "../primitive/sendTx";
 import { toEthAddress } from "../../la-helpers/toEthAddress";
@@ -19,7 +21,7 @@ export const nativeSend = async ({
   amount,
   to,
 }: {
-  provider: InstanceType<typeof ethers.providers.JsonRpcProvider>;
+  provider: ethers.providers.JsonRpcProvider;
   pkpPublicKey: string;
   amount: string;
   to: string;
