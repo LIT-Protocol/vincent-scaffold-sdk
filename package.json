@@ -58,7 +58,7 @@
     "./deploy-lit-action": "./src/deploy-lit-action.js"
   },
   "scripts": {
-    "generate:abis": "dotenv -e .env -- sh -c 'abi-to-signature ./src/e2e/abis/VincentAppFacet.abi.json ./src/e2e/abis/generated --name vincentAppFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentAppViewFacet.abi.json ./src/e2e/abis/generated --name vincentAppViewFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentUserFacet.abi.json ./src/e2e/abis/generated --name vincentUserFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentUserViewFacet.abi.json ./src/e2e/abis/generated --name vincentUserViewFacetSignatures --address $VINCENT_ADDRESS'",
+    "generate:abis": "dotenv -e .env -- sh -c 'abi-to-signature ./src/exports/e2e/abis/VincentAppFacet.abi.json ./src/exports/e2e/abis/generated --name vincentAppFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/exports/e2e/abis/VincentAppViewFacet.abi.json ./src/exports/e2e/abis/generated --name vincentAppViewFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/exports/e2e/abis/VincentUserFacet.abi.json ./src/exports/e2e/abis/generated --name vincentUserFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/exports/e2e/abis/VincentUserViewFacet.abi.json ./src/exports/e2e/abis/generated --name vincentUserViewFacetSignatures --address $VINCENT_ADDRESS'",
     "build": "tsc && npm run sync-versions",
     "prepublishOnly": "npm run validate && npm run sync-versions && npm run build",
     "validate": "node -c ./src/esbuild-share-config.js && node -c ./src/deno-fetch-shim.js",

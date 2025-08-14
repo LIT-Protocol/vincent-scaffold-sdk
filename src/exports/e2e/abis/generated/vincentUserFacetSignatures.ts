@@ -1,5 +1,5 @@
 export const vincentUserFacetSignatures = {
-  "address": "0x78Cd1d270Ff12BA55e98BDff1f3646426E25D932",
+  "address": "0xa3a602f399e9663279cdf63a290101cb6560a87e",
   "methods": {
     "permitAppVersion": {
       "type": "function",
@@ -12,16 +12,16 @@ export const vincentUserFacetSignatures = {
         },
         {
           "name": "appId",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint40",
+          "internalType": "uint40"
         },
         {
           "name": "appVersion",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint24",
+          "internalType": "uint24"
         },
         {
-          "name": "toolIpfsCids",
+          "name": "abilityIpfsCids",
           "type": "string[]",
           "internalType": "string[]"
         },
@@ -29,62 +29,19 @@ export const vincentUserFacetSignatures = {
           "name": "policyIpfsCids",
           "type": "string[][]",
           "internalType": "string[][]"
-        },
-        {
-          "name": "policyParameterNames",
-          "type": "string[][][]",
-          "internalType": "string[][][]"
         },
         {
           "name": "policyParameterValues",
-          "type": "bytes[][][]",
-          "internalType": "bytes[][][]"
+          "type": "bytes[][]",
+          "internalType": "bytes[][]"
         }
       ],
       "outputs": [],
       "stateMutability": "nonpayable"
     },
-    "removeToolPolicyParameters": {
+    "setAbilityPolicyParameters": {
       "type": "function",
-      "name": "removeToolPolicyParameters",
-      "inputs": [
-        {
-          "name": "appId",
-          "type": "uint256",
-          "internalType": "uint256"
-        },
-        {
-          "name": "pkpTokenId",
-          "type": "uint256",
-          "internalType": "uint256"
-        },
-        {
-          "name": "appVersion",
-          "type": "uint256",
-          "internalType": "uint256"
-        },
-        {
-          "name": "toolIpfsCids",
-          "type": "string[]",
-          "internalType": "string[]"
-        },
-        {
-          "name": "policyIpfsCids",
-          "type": "string[][]",
-          "internalType": "string[][]"
-        },
-        {
-          "name": "policyParameterNames",
-          "type": "string[][][]",
-          "internalType": "string[][][]"
-        }
-      ],
-      "outputs": [],
-      "stateMutability": "nonpayable"
-    },
-    "setToolPolicyParameters": {
-      "type": "function",
-      "name": "setToolPolicyParameters",
+      "name": "setAbilityPolicyParameters",
       "inputs": [
         {
           "name": "pkpTokenId",
@@ -93,16 +50,16 @@ export const vincentUserFacetSignatures = {
         },
         {
           "name": "appId",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint40",
+          "internalType": "uint40"
         },
         {
           "name": "appVersion",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint24",
+          "internalType": "uint24"
         },
         {
-          "name": "toolIpfsCids",
+          "name": "abilityIpfsCids",
           "type": "string[]",
           "internalType": "string[]"
         },
@@ -112,14 +69,9 @@ export const vincentUserFacetSignatures = {
           "internalType": "string[][]"
         },
         {
-          "name": "policyParameterNames",
-          "type": "string[][][]",
-          "internalType": "string[][][]"
-        },
-        {
           "name": "policyParameterValues",
-          "type": "bytes[][][]",
-          "internalType": "bytes[][][]"
+          "type": "bytes[][]",
+          "internalType": "bytes[][]"
         }
       ],
       "outputs": [],
@@ -136,13 +88,13 @@ export const vincentUserFacetSignatures = {
         },
         {
           "name": "appId",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint40",
+          "internalType": "uint40"
         },
         {
           "name": "appVersion",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint24",
+          "internalType": "uint24"
         }
       ],
       "outputs": [],
@@ -150,6 +102,49 @@ export const vincentUserFacetSignatures = {
     }
   },
   "events": [
+    {
+      "type": "event",
+      "name": "AbilityPolicyParametersSet",
+      "inputs": [
+        {
+          "name": "pkpTokenId",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "appId",
+          "type": "uint40",
+          "indexed": true,
+          "internalType": "uint40"
+        },
+        {
+          "name": "appVersion",
+          "type": "uint24",
+          "indexed": true,
+          "internalType": "uint24"
+        },
+        {
+          "name": "hashedAbilityIpfsCid",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "hashedAbilityPolicyIpfsCid",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "policyParameterValues",
+          "type": "bytes",
+          "indexed": false,
+          "internalType": "bytes"
+        }
+      ],
+      "anonymous": false
+    },
     {
       "type": "event",
       "name": "AppVersionPermitted",
@@ -162,15 +157,15 @@ export const vincentUserFacetSignatures = {
         },
         {
           "name": "appId",
-          "type": "uint256",
+          "type": "uint40",
           "indexed": true,
-          "internalType": "uint256"
+          "internalType": "uint40"
         },
         {
           "name": "appVersion",
-          "type": "uint256",
+          "type": "uint24",
           "indexed": true,
-          "internalType": "uint256"
+          "internalType": "uint24"
         }
       ],
       "anonymous": false
@@ -187,15 +182,15 @@ export const vincentUserFacetSignatures = {
         },
         {
           "name": "appId",
-          "type": "uint256",
+          "type": "uint40",
           "indexed": true,
-          "internalType": "uint256"
+          "internalType": "uint40"
         },
         {
           "name": "appVersion",
-          "type": "uint256",
+          "type": "uint24",
           "indexed": true,
-          "internalType": "uint256"
+          "internalType": "uint24"
         }
       ],
       "anonymous": false
@@ -215,80 +210,6 @@ export const vincentUserFacetSignatures = {
           "type": "uint256",
           "indexed": true,
           "internalType": "uint256"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "ToolPolicyParameterRemoved",
-      "inputs": [
-        {
-          "name": "pkpTokenId",
-          "type": "uint256",
-          "indexed": true,
-          "internalType": "uint256"
-        },
-        {
-          "name": "appId",
-          "type": "uint256",
-          "indexed": true,
-          "internalType": "uint256"
-        },
-        {
-          "name": "appVersion",
-          "type": "uint256",
-          "indexed": true,
-          "internalType": "uint256"
-        },
-        {
-          "name": "hashedToolIpfsCid",
-          "type": "bytes32",
-          "indexed": false,
-          "internalType": "bytes32"
-        },
-        {
-          "name": "hashedPolicyParameterName",
-          "type": "bytes32",
-          "indexed": false,
-          "internalType": "bytes32"
-        }
-      ],
-      "anonymous": false
-    },
-    {
-      "type": "event",
-      "name": "ToolPolicyParameterSet",
-      "inputs": [
-        {
-          "name": "pkpTokenId",
-          "type": "uint256",
-          "indexed": true,
-          "internalType": "uint256"
-        },
-        {
-          "name": "appId",
-          "type": "uint256",
-          "indexed": true,
-          "internalType": "uint256"
-        },
-        {
-          "name": "appVersion",
-          "type": "uint256",
-          "indexed": true,
-          "internalType": "uint256"
-        },
-        {
-          "name": "hashedToolIpfsCid",
-          "type": "bytes32",
-          "indexed": false,
-          "internalType": "bytes32"
-        },
-        {
-          "name": "hashedPolicyParameterName",
-          "type": "bytes32",
-          "indexed": false,
-          "internalType": "bytes32"
         }
       ],
       "anonymous": false

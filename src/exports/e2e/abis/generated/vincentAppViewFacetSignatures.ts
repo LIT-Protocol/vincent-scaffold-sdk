@@ -1,6 +1,19 @@
 export const vincentAppViewFacetSignatures = {
-  "address": "0x78Cd1d270Ff12BA55e98BDff1f3646426E25D932",
+  "address": "0xa3a602f399e9663279cdf63a290101cb6560a87e",
   "methods": {
+    "APP_PAGE_SIZE": {
+      "type": "function",
+      "name": "APP_PAGE_SIZE",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
     "getAppByDelegatee": {
       "type": "function",
       "name": "getAppByDelegatee",
@@ -19,28 +32,13 @@ export const vincentAppViewFacetSignatures = {
           "components": [
             {
               "name": "id",
-              "type": "uint256",
-              "internalType": "uint256"
-            },
-            {
-              "name": "name",
-              "type": "string",
-              "internalType": "string"
-            },
-            {
-              "name": "description",
-              "type": "string",
-              "internalType": "string"
+              "type": "uint40",
+              "internalType": "uint40"
             },
             {
               "name": "isDeleted",
               "type": "bool",
               "internalType": "bool"
-            },
-            {
-              "name": "deploymentStatus",
-              "type": "uint8",
-              "internalType": "enum VincentAppStorage.DeploymentStatus"
             },
             {
               "name": "manager",
@@ -49,18 +47,13 @@ export const vincentAppViewFacetSignatures = {
             },
             {
               "name": "latestVersion",
-              "type": "uint256",
-              "internalType": "uint256"
+              "type": "uint24",
+              "internalType": "uint24"
             },
             {
               "name": "delegatees",
               "type": "address[]",
               "internalType": "address[]"
-            },
-            {
-              "name": "authorizedRedirectUris",
-              "type": "string[]",
-              "internalType": "string[]"
             }
           ]
         }
@@ -73,8 +66,8 @@ export const vincentAppViewFacetSignatures = {
       "inputs": [
         {
           "name": "appId",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint40",
+          "internalType": "uint40"
         }
       ],
       "outputs": [
@@ -85,28 +78,13 @@ export const vincentAppViewFacetSignatures = {
           "components": [
             {
               "name": "id",
-              "type": "uint256",
-              "internalType": "uint256"
-            },
-            {
-              "name": "name",
-              "type": "string",
-              "internalType": "string"
-            },
-            {
-              "name": "description",
-              "type": "string",
-              "internalType": "string"
+              "type": "uint40",
+              "internalType": "uint40"
             },
             {
               "name": "isDeleted",
               "type": "bool",
               "internalType": "bool"
-            },
-            {
-              "name": "deploymentStatus",
-              "type": "uint8",
-              "internalType": "enum VincentAppStorage.DeploymentStatus"
             },
             {
               "name": "manager",
@@ -115,18 +93,13 @@ export const vincentAppViewFacetSignatures = {
             },
             {
               "name": "latestVersion",
-              "type": "uint256",
-              "internalType": "uint256"
+              "type": "uint24",
+              "internalType": "uint24"
             },
             {
               "name": "delegatees",
               "type": "address[]",
               "internalType": "address[]"
-            },
-            {
-              "name": "authorizedRedirectUris",
-              "type": "string[]",
-              "internalType": "string[]"
             }
           ]
         }
@@ -139,68 +112,16 @@ export const vincentAppViewFacetSignatures = {
       "inputs": [
         {
           "name": "appId",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint40",
+          "internalType": "uint40"
         },
         {
           "name": "version",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint24",
+          "internalType": "uint24"
         }
       ],
       "outputs": [
-        {
-          "name": "app",
-          "type": "tuple",
-          "internalType": "struct VincentAppViewFacet.App",
-          "components": [
-            {
-              "name": "id",
-              "type": "uint256",
-              "internalType": "uint256"
-            },
-            {
-              "name": "name",
-              "type": "string",
-              "internalType": "string"
-            },
-            {
-              "name": "description",
-              "type": "string",
-              "internalType": "string"
-            },
-            {
-              "name": "isDeleted",
-              "type": "bool",
-              "internalType": "bool"
-            },
-            {
-              "name": "deploymentStatus",
-              "type": "uint8",
-              "internalType": "enum VincentAppStorage.DeploymentStatus"
-            },
-            {
-              "name": "manager",
-              "type": "address",
-              "internalType": "address"
-            },
-            {
-              "name": "latestVersion",
-              "type": "uint256",
-              "internalType": "uint256"
-            },
-            {
-              "name": "delegatees",
-              "type": "address[]",
-              "internalType": "address[]"
-            },
-            {
-              "name": "authorizedRedirectUris",
-              "type": "string[]",
-              "internalType": "string[]"
-            }
-          ]
-        },
         {
           "name": "appVersion",
           "type": "tuple",
@@ -208,8 +129,8 @@ export const vincentAppViewFacetSignatures = {
           "components": [
             {
               "name": "version",
-              "type": "uint256",
-              "internalType": "uint256"
+              "type": "uint24",
+              "internalType": "uint24"
             },
             {
               "name": "enabled",
@@ -222,36 +143,19 @@ export const vincentAppViewFacetSignatures = {
               "internalType": "uint256[]"
             },
             {
-              "name": "tools",
+              "name": "abilities",
               "type": "tuple[]",
-              "internalType": "struct VincentAppViewFacet.Tool[]",
+              "internalType": "struct VincentAppViewFacet.Ability[]",
               "components": [
                 {
-                  "name": "toolIpfsCid",
+                  "name": "abilityIpfsCid",
                   "type": "string",
                   "internalType": "string"
                 },
                 {
-                  "name": "policies",
-                  "type": "tuple[]",
-                  "internalType": "struct VincentAppViewFacet.Policy[]",
-                  "components": [
-                    {
-                      "name": "policyIpfsCid",
-                      "type": "string",
-                      "internalType": "string"
-                    },
-                    {
-                      "name": "parameterNames",
-                      "type": "string[]",
-                      "internalType": "string[]"
-                    },
-                    {
-                      "name": "parameterTypes",
-                      "type": "uint8[]",
-                      "internalType": "enum VincentAppStorage.ParameterType[]"
-                    }
-                  ]
+                  "name": "policyIpfsCids",
+                  "type": "string[]",
+                  "internalType": "string[]"
                 }
               ]
             }
@@ -268,174 +172,52 @@ export const vincentAppViewFacetSignatures = {
           "name": "manager",
           "type": "address",
           "internalType": "address"
+        },
+        {
+          "name": "offset",
+          "type": "uint256",
+          "internalType": "uint256"
         }
       ],
       "outputs": [
         {
-          "name": "appsWithVersions",
-          "type": "tuple[]",
-          "internalType": "struct VincentAppViewFacet.AppWithVersions[]",
-          "components": [
-            {
-              "name": "app",
-              "type": "tuple",
-              "internalType": "struct VincentAppViewFacet.App",
-              "components": [
-                {
-                  "name": "id",
-                  "type": "uint256",
-                  "internalType": "uint256"
-                },
-                {
-                  "name": "name",
-                  "type": "string",
-                  "internalType": "string"
-                },
-                {
-                  "name": "description",
-                  "type": "string",
-                  "internalType": "string"
-                },
-                {
-                  "name": "isDeleted",
-                  "type": "bool",
-                  "internalType": "bool"
-                },
-                {
-                  "name": "deploymentStatus",
-                  "type": "uint8",
-                  "internalType": "enum VincentAppStorage.DeploymentStatus"
-                },
-                {
-                  "name": "manager",
-                  "type": "address",
-                  "internalType": "address"
-                },
-                {
-                  "name": "latestVersion",
-                  "type": "uint256",
-                  "internalType": "uint256"
-                },
-                {
-                  "name": "delegatees",
-                  "type": "address[]",
-                  "internalType": "address[]"
-                },
-                {
-                  "name": "authorizedRedirectUris",
-                  "type": "string[]",
-                  "internalType": "string[]"
-                }
-              ]
-            },
-            {
-              "name": "versions",
-              "type": "tuple[]",
-              "internalType": "struct VincentAppViewFacet.AppVersion[]",
-              "components": [
-                {
-                  "name": "version",
-                  "type": "uint256",
-                  "internalType": "uint256"
-                },
-                {
-                  "name": "enabled",
-                  "type": "bool",
-                  "internalType": "bool"
-                },
-                {
-                  "name": "delegatedAgentPkpTokenIds",
-                  "type": "uint256[]",
-                  "internalType": "uint256[]"
-                },
-                {
-                  "name": "tools",
-                  "type": "tuple[]",
-                  "internalType": "struct VincentAppViewFacet.Tool[]",
-                  "components": [
-                    {
-                      "name": "toolIpfsCid",
-                      "type": "string",
-                      "internalType": "string"
-                    },
-                    {
-                      "name": "policies",
-                      "type": "tuple[]",
-                      "internalType": "struct VincentAppViewFacet.Policy[]",
-                      "components": [
-                        {
-                          "name": "policyIpfsCid",
-                          "type": "string",
-                          "internalType": "string"
-                        },
-                        {
-                          "name": "parameterNames",
-                          "type": "string[]",
-                          "internalType": "string[]"
-                        },
-                        {
-                          "name": "parameterTypes",
-                          "type": "uint8[]",
-                          "internalType": "enum VincentAppStorage.ParameterType[]"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+          "name": "appIds",
+          "type": "uint40[]",
+          "internalType": "uint40[]"
+        },
+        {
+          "name": "appVersionCounts",
+          "type": "uint24[]",
+          "internalType": "uint24[]"
         }
       ],
       "stateMutability": "view"
     },
-    "getAuthorizedRedirectUriByHash": {
+    "getDelegatedAgentPkpTokenIds": {
       "type": "function",
-      "name": "getAuthorizedRedirectUriByHash",
-      "inputs": [
-        {
-          "name": "redirectUriHash",
-          "type": "bytes32",
-          "internalType": "bytes32"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "redirectUri",
-          "type": "string",
-          "internalType": "string"
-        }
-      ],
-      "stateMutability": "view"
-    },
-    "getAuthorizedRedirectUrisByAppId": {
-      "type": "function",
-      "name": "getAuthorizedRedirectUrisByAppId",
+      "name": "getDelegatedAgentPkpTokenIds",
       "inputs": [
         {
           "name": "appId",
+          "type": "uint40",
+          "internalType": "uint40"
+        },
+        {
+          "name": "version",
+          "type": "uint24",
+          "internalType": "uint24"
+        },
+        {
+          "name": "offset",
           "type": "uint256",
           "internalType": "uint256"
         }
       ],
       "outputs": [
         {
-          "name": "redirectUris",
-          "type": "string[]",
-          "internalType": "string[]"
-        }
-      ],
-      "stateMutability": "view"
-    },
-    "getTotalAppCount": {
-      "type": "function",
-      "name": "getTotalAppCount",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "",
-          "type": "uint256",
-          "internalType": "uint256"
+          "name": "delegatedAgentPkpTokenIds",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
         }
       ],
       "stateMutability": "view"

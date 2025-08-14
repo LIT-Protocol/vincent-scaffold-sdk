@@ -1,47 +1,22 @@
 exports.vincentUserViewFacetSignatures = {
-  "address": "0x78Cd1d270Ff12BA55e98BDff1f3646426E25D932",
+  "address": "0xa3a602f399e9663279cdf63a290101cb6560a87e",
   "methods": {
-    "getAllPermittedAppIdsForPkp": {
+    "AGENT_PAGE_SIZE": {
       "type": "function",
-      "name": "getAllPermittedAppIdsForPkp",
-      "inputs": [
+      "name": "AGENT_PAGE_SIZE",
+      "inputs": [],
+      "outputs": [
         {
-          "name": "pkpTokenId",
+          "name": "",
           "type": "uint256",
           "internalType": "uint256"
         }
       ],
-      "outputs": [
-        {
-          "name": "",
-          "type": "uint256[]",
-          "internalType": "uint256[]"
-        }
-      ],
       "stateMutability": "view"
     },
-    "getAllRegisteredAgentPkps": {
+    "getAllAbilitiesAndPoliciesForApp": {
       "type": "function",
-      "name": "getAllRegisteredAgentPkps",
-      "inputs": [
-        {
-          "name": "userAddress",
-          "type": "address",
-          "internalType": "address"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "",
-          "type": "uint256[]",
-          "internalType": "uint256[]"
-        }
-      ],
-      "stateMutability": "view"
-    },
-    "getAllToolsAndPoliciesForApp": {
-      "type": "function",
-      "name": "getAllToolsAndPoliciesForApp",
+      "name": "getAllAbilitiesAndPoliciesForApp",
       "inputs": [
         {
           "name": "pkpTokenId",
@@ -50,18 +25,18 @@ exports.vincentUserViewFacetSignatures = {
         },
         {
           "name": "appId",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint40",
+          "internalType": "uint40"
         }
       ],
       "outputs": [
         {
-          "name": "tools",
+          "name": "abilities",
           "type": "tuple[]",
-          "internalType": "struct VincentUserViewFacet.ToolWithPolicies[]",
+          "internalType": "struct VincentUserViewFacet.AbilityWithPolicies[]",
           "components": [
             {
-              "name": "toolIpfsCid",
+              "name": "abilityIpfsCid",
               "type": "string",
               "internalType": "string"
             },
@@ -76,30 +51,61 @@ exports.vincentUserViewFacetSignatures = {
                   "internalType": "string"
                 },
                 {
-                  "name": "parameters",
-                  "type": "tuple[]",
-                  "internalType": "struct VincentUserViewFacet.PolicyParameter[]",
-                  "components": [
-                    {
-                      "name": "name",
-                      "type": "string",
-                      "internalType": "string"
-                    },
-                    {
-                      "name": "paramType",
-                      "type": "uint8",
-                      "internalType": "enum VincentAppStorage.ParameterType"
-                    },
-                    {
-                      "name": "value",
-                      "type": "bytes",
-                      "internalType": "bytes"
-                    }
-                  ]
+                  "name": "policyParameterValues",
+                  "type": "bytes",
+                  "internalType": "bytes"
                 }
               ]
             }
           ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    "getAllPermittedAppIdsForPkp": {
+      "type": "function",
+      "name": "getAllPermittedAppIdsForPkp",
+      "inputs": [
+        {
+          "name": "pkpTokenId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "offset",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint40[]",
+          "internalType": "uint40[]"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    "getAllRegisteredAgentPkps": {
+      "type": "function",
+      "name": "getAllRegisteredAgentPkps",
+      "inputs": [
+        {
+          "name": "userAddress",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "offset",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
         }
       ],
       "stateMutability": "view"
@@ -115,22 +121,22 @@ exports.vincentUserViewFacetSignatures = {
         },
         {
           "name": "appId",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint40",
+          "internalType": "uint40"
         }
       ],
       "outputs": [
         {
           "name": "",
-          "type": "uint256",
-          "internalType": "uint256"
+          "type": "uint24",
+          "internalType": "uint24"
         }
       ],
       "stateMutability": "view"
     },
-    "validateToolExecutionAndGetPolicies": {
+    "validateAbilityExecutionAndGetPolicies": {
       "type": "function",
-      "name": "validateToolExecutionAndGetPolicies",
+      "name": "validateAbilityExecutionAndGetPolicies",
       "inputs": [
         {
           "name": "delegatee",
@@ -143,7 +149,7 @@ exports.vincentUserViewFacetSignatures = {
           "internalType": "uint256"
         },
         {
-          "name": "toolIpfsCid",
+          "name": "abilityIpfsCid",
           "type": "string",
           "internalType": "string"
         }
@@ -152,7 +158,7 @@ exports.vincentUserViewFacetSignatures = {
         {
           "name": "validation",
           "type": "tuple",
-          "internalType": "struct VincentUserViewFacet.ToolExecutionValidation",
+          "internalType": "struct VincentUserViewFacet.AbilityExecutionValidation",
           "components": [
             {
               "name": "isPermitted",
@@ -161,13 +167,13 @@ exports.vincentUserViewFacetSignatures = {
             },
             {
               "name": "appId",
-              "type": "uint256",
-              "internalType": "uint256"
+              "type": "uint40",
+              "internalType": "uint40"
             },
             {
               "name": "appVersion",
-              "type": "uint256",
-              "internalType": "uint256"
+              "type": "uint24",
+              "internalType": "uint24"
             },
             {
               "name": "policies",
@@ -180,26 +186,9 @@ exports.vincentUserViewFacetSignatures = {
                   "internalType": "string"
                 },
                 {
-                  "name": "parameters",
-                  "type": "tuple[]",
-                  "internalType": "struct VincentUserViewFacet.PolicyParameter[]",
-                  "components": [
-                    {
-                      "name": "name",
-                      "type": "string",
-                      "internalType": "string"
-                    },
-                    {
-                      "name": "paramType",
-                      "type": "uint8",
-                      "internalType": "enum VincentAppStorage.ParameterType"
-                    },
-                    {
-                      "name": "value",
-                      "type": "bytes",
-                      "internalType": "bytes"
-                    }
-                  ]
+                  "name": "policyParameterValues",
+                  "type": "bytes",
+                  "internalType": "bytes"
                 }
               ]
             }
