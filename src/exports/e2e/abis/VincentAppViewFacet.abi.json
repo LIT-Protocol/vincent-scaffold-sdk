@@ -1,6 +1,19 @@
 [
   {
     "type": "function",
+    "name": "APP_PAGE_SIZE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getAppByDelegatee",
     "inputs": [
       {
@@ -17,28 +30,13 @@
         "components": [
           {
             "name": "id",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "description",
-            "type": "string",
-            "internalType": "string"
+            "type": "uint40",
+            "internalType": "uint40"
           },
           {
             "name": "isDeleted",
             "type": "bool",
             "internalType": "bool"
-          },
-          {
-            "name": "deploymentStatus",
-            "type": "uint8",
-            "internalType": "enum VincentAppStorage.DeploymentStatus"
           },
           {
             "name": "manager",
@@ -47,18 +45,13 @@
           },
           {
             "name": "latestVersion",
-            "type": "uint256",
-            "internalType": "uint256"
+            "type": "uint24",
+            "internalType": "uint24"
           },
           {
             "name": "delegatees",
             "type": "address[]",
             "internalType": "address[]"
-          },
-          {
-            "name": "authorizedRedirectUris",
-            "type": "string[]",
-            "internalType": "string[]"
           }
         ]
       }
@@ -71,8 +64,8 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       }
     ],
     "outputs": [
@@ -83,28 +76,13 @@
         "components": [
           {
             "name": "id",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "description",
-            "type": "string",
-            "internalType": "string"
+            "type": "uint40",
+            "internalType": "uint40"
           },
           {
             "name": "isDeleted",
             "type": "bool",
             "internalType": "bool"
-          },
-          {
-            "name": "deploymentStatus",
-            "type": "uint8",
-            "internalType": "enum VincentAppStorage.DeploymentStatus"
           },
           {
             "name": "manager",
@@ -113,18 +91,13 @@
           },
           {
             "name": "latestVersion",
-            "type": "uint256",
-            "internalType": "uint256"
+            "type": "uint24",
+            "internalType": "uint24"
           },
           {
             "name": "delegatees",
             "type": "address[]",
             "internalType": "address[]"
-          },
-          {
-            "name": "authorizedRedirectUris",
-            "type": "string[]",
-            "internalType": "string[]"
           }
         ]
       }
@@ -137,68 +110,16 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "version",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint24",
+        "internalType": "uint24"
       }
     ],
     "outputs": [
-      {
-        "name": "app",
-        "type": "tuple",
-        "internalType": "struct VincentAppViewFacet.App",
-        "components": [
-          {
-            "name": "id",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "description",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "isDeleted",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "deploymentStatus",
-            "type": "uint8",
-            "internalType": "enum VincentAppStorage.DeploymentStatus"
-          },
-          {
-            "name": "manager",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "latestVersion",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "delegatees",
-            "type": "address[]",
-            "internalType": "address[]"
-          },
-          {
-            "name": "authorizedRedirectUris",
-            "type": "string[]",
-            "internalType": "string[]"
-          }
-        ]
-      },
       {
         "name": "appVersion",
         "type": "tuple",
@@ -206,8 +127,8 @@
         "components": [
           {
             "name": "version",
-            "type": "uint256",
-            "internalType": "uint256"
+            "type": "uint24",
+            "internalType": "uint24"
           },
           {
             "name": "enabled",
@@ -220,36 +141,19 @@
             "internalType": "uint256[]"
           },
           {
-            "name": "tools",
+            "name": "abilities",
             "type": "tuple[]",
-            "internalType": "struct VincentAppViewFacet.Tool[]",
+            "internalType": "struct VincentAppViewFacet.Ability[]",
             "components": [
               {
-                "name": "toolIpfsCid",
+                "name": "abilityIpfsCid",
                 "type": "string",
                 "internalType": "string"
               },
               {
-                "name": "policies",
-                "type": "tuple[]",
-                "internalType": "struct VincentAppViewFacet.Policy[]",
-                "components": [
-                  {
-                    "name": "policyIpfsCid",
-                    "type": "string",
-                    "internalType": "string"
-                  },
-                  {
-                    "name": "parameterNames",
-                    "type": "string[]",
-                    "internalType": "string[]"
-                  },
-                  {
-                    "name": "parameterTypes",
-                    "type": "uint8[]",
-                    "internalType": "enum VincentAppStorage.ParameterType[]"
-                  }
-                ]
+                "name": "policyIpfsCids",
+                "type": "string[]",
+                "internalType": "string[]"
               }
             ]
           }
@@ -266,174 +170,52 @@
         "name": "manager",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "appsWithVersions",
-        "type": "tuple[]",
-        "internalType": "struct VincentAppViewFacet.AppWithVersions[]",
-        "components": [
-          {
-            "name": "app",
-            "type": "tuple",
-            "internalType": "struct VincentAppViewFacet.App",
-            "components": [
-              {
-                "name": "id",
-                "type": "uint256",
-                "internalType": "uint256"
-              },
-              {
-                "name": "name",
-                "type": "string",
-                "internalType": "string"
-              },
-              {
-                "name": "description",
-                "type": "string",
-                "internalType": "string"
-              },
-              {
-                "name": "isDeleted",
-                "type": "bool",
-                "internalType": "bool"
-              },
-              {
-                "name": "deploymentStatus",
-                "type": "uint8",
-                "internalType": "enum VincentAppStorage.DeploymentStatus"
-              },
-              {
-                "name": "manager",
-                "type": "address",
-                "internalType": "address"
-              },
-              {
-                "name": "latestVersion",
-                "type": "uint256",
-                "internalType": "uint256"
-              },
-              {
-                "name": "delegatees",
-                "type": "address[]",
-                "internalType": "address[]"
-              },
-              {
-                "name": "authorizedRedirectUris",
-                "type": "string[]",
-                "internalType": "string[]"
-              }
-            ]
-          },
-          {
-            "name": "versions",
-            "type": "tuple[]",
-            "internalType": "struct VincentAppViewFacet.AppVersion[]",
-            "components": [
-              {
-                "name": "version",
-                "type": "uint256",
-                "internalType": "uint256"
-              },
-              {
-                "name": "enabled",
-                "type": "bool",
-                "internalType": "bool"
-              },
-              {
-                "name": "delegatedAgentPkpTokenIds",
-                "type": "uint256[]",
-                "internalType": "uint256[]"
-              },
-              {
-                "name": "tools",
-                "type": "tuple[]",
-                "internalType": "struct VincentAppViewFacet.Tool[]",
-                "components": [
-                  {
-                    "name": "toolIpfsCid",
-                    "type": "string",
-                    "internalType": "string"
-                  },
-                  {
-                    "name": "policies",
-                    "type": "tuple[]",
-                    "internalType": "struct VincentAppViewFacet.Policy[]",
-                    "components": [
-                      {
-                        "name": "policyIpfsCid",
-                        "type": "string",
-                        "internalType": "string"
-                      },
-                      {
-                        "name": "parameterNames",
-                        "type": "string[]",
-                        "internalType": "string[]"
-                      },
-                      {
-                        "name": "parameterTypes",
-                        "type": "uint8[]",
-                        "internalType": "enum VincentAppStorage.ParameterType[]"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
+        "name": "appIds",
+        "type": "uint40[]",
+        "internalType": "uint40[]"
+      },
+      {
+        "name": "appVersionCounts",
+        "type": "uint24[]",
+        "internalType": "uint24[]"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "getAuthorizedRedirectUriByHash",
-    "inputs": [
-      {
-        "name": "redirectUriHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "redirectUri",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getAuthorizedRedirectUrisByAppId",
+    "name": "getDelegatedAgentPkpTokenIds",
     "inputs": [
       {
         "name": "appId",
+        "type": "uint40",
+        "internalType": "uint40"
+      },
+      {
+        "name": "version",
+        "type": "uint24",
+        "internalType": "uint24"
+      },
+      {
+        "name": "offset",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
     "outputs": [
       {
-        "name": "redirectUris",
-        "type": "string[]",
-        "internalType": "string[]"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getTotalAppCount",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "delegatedAgentPkpTokenIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -444,8 +226,8 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       }
     ]
   },
@@ -455,8 +237,24 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AppVersionNotEnabled",
+    "inputs": [
+      {
+        "name": "appId",
+        "type": "uint40",
+        "internalType": "uint40"
+      },
+      {
+        "name": "appVersion",
+        "type": "uint24",
+        "internalType": "uint24"
       }
     ]
   },
@@ -466,13 +264,13 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "appVersion",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint24",
+        "internalType": "uint24"
       }
     ]
   },
@@ -489,6 +287,22 @@
   },
   {
     "type": "error",
+    "name": "InvalidOffset",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "totalCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "NoAppsFoundForManager",
     "inputs": [
       {
@@ -500,23 +314,17 @@
   },
   {
     "type": "error",
-    "name": "NoAuthorizedRedirectUrisFoundForApp",
+    "name": "NoDelegatedAgentPkpsFound",
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "RedirectUriNotFound",
-    "inputs": [
+        "type": "uint40",
+        "internalType": "uint40"
+      },
       {
-        "name": "redirectUriHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "name": "version",
+        "type": "uint24",
+        "internalType": "uint24"
       }
     ]
   },

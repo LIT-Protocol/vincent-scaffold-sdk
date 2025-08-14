@@ -1,30 +1,12 @@
 [
   {
     "type": "function",
-    "name": "addAuthorizedRedirectUri",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "redirectUri",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "addDelegatee",
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "delegatee",
@@ -41,8 +23,8 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       }
     ],
     "outputs": [],
@@ -54,13 +36,13 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "appVersion",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint24",
+        "internalType": "uint24"
       },
       {
         "name": "enabled",
@@ -76,75 +58,38 @@
     "name": "registerApp",
     "inputs": [
       {
-        "name": "appInfo",
-        "type": "tuple",
-        "internalType": "struct VincentAppFacet.AppInfo",
-        "components": [
-          {
-            "name": "name",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "description",
-            "type": "string",
-            "internalType": "string"
-          },
-          {
-            "name": "deploymentStatus",
-            "type": "uint8",
-            "internalType": "enum VincentAppStorage.DeploymentStatus"
-          },
-          {
-            "name": "authorizedRedirectUris",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "delegatees",
-            "type": "address[]",
-            "internalType": "address[]"
-          }
-        ]
+        "name": "appId",
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
-        "name": "versionTools",
+        "name": "delegatees",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "versionAbilities",
         "type": "tuple",
-        "internalType": "struct VincentAppFacet.AppVersionTools",
+        "internalType": "struct VincentAppFacet.AppVersionAbilities",
         "components": [
           {
-            "name": "toolIpfsCids",
+            "name": "abilityIpfsCids",
             "type": "string[]",
             "internalType": "string[]"
           },
           {
-            "name": "toolPolicies",
+            "name": "abilityPolicies",
             "type": "string[][]",
             "internalType": "string[][]"
-          },
-          {
-            "name": "toolPolicyParameterNames",
-            "type": "string[][][]",
-            "internalType": "string[][][]"
-          },
-          {
-            "name": "toolPolicyParameterTypes",
-            "type": "uint8[][][]",
-            "internalType": "enum VincentAppStorage.ParameterType[][][]"
           }
         ]
       }
     ],
     "outputs": [
       {
-        "name": "newAppId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
         "name": "newAppVersion",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint24",
+        "internalType": "uint24"
       }
     ],
     "stateMutability": "nonpayable"
@@ -155,33 +100,23 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
-        "name": "versionTools",
+        "name": "versionAbilities",
         "type": "tuple",
-        "internalType": "struct VincentAppFacet.AppVersionTools",
+        "internalType": "struct VincentAppFacet.AppVersionAbilities",
         "components": [
           {
-            "name": "toolIpfsCids",
+            "name": "abilityIpfsCids",
             "type": "string[]",
             "internalType": "string[]"
           },
           {
-            "name": "toolPolicies",
+            "name": "abilityPolicies",
             "type": "string[][]",
             "internalType": "string[][]"
-          },
-          {
-            "name": "toolPolicyParameterNames",
-            "type": "string[][][]",
-            "internalType": "string[][][]"
-          },
-          {
-            "name": "toolPolicyParameterTypes",
-            "type": "uint8[][][]",
-            "internalType": "enum VincentAppStorage.ParameterType[][][]"
           }
         ]
       }
@@ -189,28 +124,10 @@
     "outputs": [
       {
         "name": "newAppVersion",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint24",
+        "internalType": "uint24"
       }
     ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "removeAuthorizedRedirectUri",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "redirectUri",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
@@ -219,8 +136,8 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "delegatee",
@@ -233,17 +150,17 @@
   },
   {
     "type": "function",
-    "name": "updateAppDeploymentStatus",
+    "name": "setDelegatee",
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
-        "name": "deploymentStatus",
-        "type": "uint8",
-        "internalType": "enum VincentAppStorage.DeploymentStatus"
+        "name": "delegatees",
+        "type": "address[]",
+        "internalType": "address[]"
       }
     ],
     "outputs": [],
@@ -251,35 +168,12 @@
   },
   {
     "type": "function",
-    "name": "updateAppDescription",
+    "name": "undeleteApp",
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "newDescription",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "updateAppName",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "newName",
-        "type": "string",
-        "internalType": "string"
+        "type": "uint40",
+        "internalType": "uint40"
       }
     ],
     "outputs": [],
@@ -291,47 +185,9 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
+        "type": "uint40",
         "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "AppDeploymentStatusUpdated",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "deploymentStatus",
-        "type": "uint8",
-        "indexed": true,
-        "internalType": "uint8"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "AppDescriptionUpdated",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "newDescription",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
+        "internalType": "uint40"
       }
     ],
     "anonymous": false
@@ -342,15 +198,15 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
+        "type": "uint40",
         "indexed": true,
-        "internalType": "uint256"
+        "internalType": "uint40"
       },
       {
         "name": "appVersion",
-        "type": "uint256",
+        "type": "uint24",
         "indexed": true,
-        "internalType": "uint256"
+        "internalType": "uint24"
       },
       {
         "name": "enabled",
@@ -363,57 +219,13 @@
   },
   {
     "type": "event",
-    "name": "AppNameUpdated",
+    "name": "AppUndeleted",
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
+        "type": "uint40",
         "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "newName",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "AuthorizedRedirectUriAdded",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "hashedRedirectUri",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "AuthorizedRedirectUriRemoved",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "hashedRedirectUri",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        "internalType": "uint40"
       }
     ],
     "anonymous": false
@@ -424,9 +236,9 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
+        "type": "uint40",
         "indexed": true,
-        "internalType": "uint256"
+        "internalType": "uint40"
       },
       {
         "name": "delegatee",
@@ -443,9 +255,9 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
+        "type": "uint40",
         "indexed": true,
-        "internalType": "uint256"
+        "internalType": "uint40"
       },
       {
         "name": "delegatee",
@@ -462,9 +274,9 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
+        "type": "uint40",
         "indexed": true,
-        "internalType": "uint256"
+        "internalType": "uint40"
       },
       {
         "name": "manager",
@@ -481,15 +293,15 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
+        "type": "uint40",
         "indexed": true,
-        "internalType": "uint256"
+        "internalType": "uint40"
       },
       {
         "name": "appVersion",
-        "type": "uint256",
+        "type": "uint24",
         "indexed": true,
-        "internalType": "uint256"
+        "internalType": "uint24"
       },
       {
         "name": "manager",
@@ -515,17 +327,50 @@
   },
   {
     "type": "error",
-    "name": "AppAlreadyInRequestedDeploymentStatus",
+    "name": "AbilityArrayDimensionMismatch",
     "inputs": [
       {
-        "name": "appId",
+        "name": "abilitiesLength",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "deploymentStatus",
-        "type": "uint8",
-        "internalType": "uint8"
+        "name": "policiesLength",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AppAlreadyDeleted",
+    "inputs": [
+      {
+        "name": "appId",
+        "type": "uint40",
+        "internalType": "uint40"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AppAlreadyRegistered",
+    "inputs": [
+      {
+        "name": "appId",
+        "type": "uint40",
+        "internalType": "uint40"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AppAlreadyUndeleted",
+    "inputs": [
+      {
+        "name": "appId",
+        "type": "uint40",
+        "internalType": "uint40"
       }
     ]
   },
@@ -535,8 +380,8 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       }
     ]
   },
@@ -546,8 +391,8 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       }
     ]
   },
@@ -557,13 +402,13 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "appVersion",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint24",
+        "internalType": "uint24"
       },
       {
         "name": "enabled",
@@ -574,17 +419,17 @@
   },
   {
     "type": "error",
-    "name": "AppVersionHasDelegatedAgents",
+    "name": "AppVersionNotEnabled",
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "appVersion",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint24",
+        "internalType": "uint24"
       }
     ]
   },
@@ -594,24 +439,13 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "appVersion",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "CannotRemoveLastRedirectUri",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint24",
+        "internalType": "uint24"
       }
     ]
   },
@@ -621,8 +455,8 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "delegatee",
@@ -637,8 +471,8 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "delegatee",
@@ -649,25 +483,31 @@
   },
   {
     "type": "error",
-    "name": "EmptyAppDescriptionNotAllowed",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "EmptyAppNameNotAllowed",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "EmptyParameterNameNotAllowed",
+    "name": "DuplicateAbilityIpfsCidNotAllowed",
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
-        "name": "toolIndex",
+        "name": "abilityIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DuplicateAbilityPolicyIpfsCidNotAllowed",
+    "inputs": [
+      {
+        "name": "appId",
+        "type": "uint40",
+        "internalType": "uint40"
+      },
+      {
+        "name": "abilityIndex",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -675,9 +515,20 @@
         "name": "policyIndex",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "EmptyAbilityIpfsCidNotAllowed",
+    "inputs": [
+      {
+        "name": "appId",
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
-        "name": "paramIndex",
+        "name": "abilityIndex",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -689,11 +540,11 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
-        "name": "toolIndex",
+        "name": "abilityIndex",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -701,20 +552,15 @@
   },
   {
     "type": "error",
-    "name": "EmptyRedirectUriNotAllowed",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "EmptyToolIpfsCidNotAllowed",
+    "name": "InvalidOffset",
     "inputs": [
       {
-        "name": "appId",
+        "name": "offset",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "toolIndex",
+        "name": "totalCount",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -722,17 +568,12 @@
   },
   {
     "type": "error",
-    "name": "NoRedirectUrisProvided",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NoToolsProvided",
+    "name": "NoAbilitiesProvided",
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       }
     ]
   },
@@ -742,8 +583,8 @@
     "inputs": [
       {
         "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
         "name": "msgSender",
@@ -754,117 +595,12 @@
   },
   {
     "type": "error",
-    "name": "ParameterArrayLengthMismatch",
-    "inputs": [
-      {
-        "name": "toolIndex",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "policyIndex",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "paramNamesLength",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "paramTypesLength",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "PolicyArrayLengthMismatch",
-    "inputs": [
-      {
-        "name": "toolIndex",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "policiesLength",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "paramNamesLength",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "paramTypesLength",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "RedirectUriAlreadyAuthorizedForApp",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "redirectUri",
-        "type": "string",
-        "internalType": "string"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "RedirectUriNotRegisteredToApp",
-    "inputs": [
-      {
-        "name": "appId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "redirectUri",
-        "type": "string",
-        "internalType": "string"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ToolArrayDimensionMismatch",
-    "inputs": [
-      {
-        "name": "toolsLength",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "policiesLength",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "paramNamesLength",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "paramTypesLength",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
     "name": "ZeroAddressDelegateeNotAllowed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroAppIdNotAllowed",
     "inputs": []
   }
 ]
