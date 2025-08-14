@@ -17,7 +17,7 @@ import {
   createChainClient,
   createPermitAppVersionFunction,
   createRegisterAppFunction,
-  createValidateToolExecutionFunction,
+  createValidateAbilityExecutionFunction,
   PublicViemClientManager,
 } from "../managers/chain-client";
 import {
@@ -36,7 +36,7 @@ export interface InitAccounts {
   agentWalletPkpOwner: {
     viemWalletClient: ReturnType<typeof createWalletClient>;
     mintAgentWalletPkp: (params: {
-      toolAndPolicyIpfsCids: string[];
+      abilityAndPolicyIpfsCids: string[];
     }) => Promise<{
       tokenId: string;
       publicKey: string;
@@ -48,15 +48,15 @@ export interface InitAccounts {
         publicKey: string;
         ethAddress: string;
       };
-      toolAndPolicyIpfsCids: string[];
+      abilityAndPolicyIpfsCids: string[];
     }) => Promise<string[]>;
     permitAppVersion: ReturnType<typeof createPermitAppVersionFunction>;
   };
   appManager: {
     viemWalletClient: ReturnType<typeof createWalletClient>;
     registerApp: ReturnType<typeof createRegisterAppFunction>;
-    validateToolExecution: ReturnType<
-      typeof createValidateToolExecutionFunction
+    validateAbilityExecution: ReturnType<
+      typeof createValidateAbilityExecutionFunction
     >;
   };
   delegatee: {
@@ -233,7 +233,7 @@ export const init = async ({
 
   const _deploymentStatus =
     STATUS_TO_DEPLOYMENT_STATUS[
-      deploymentStatus as keyof typeof STATUS_TO_DEPLOYMENT_STATUS
+    deploymentStatus as keyof typeof STATUS_TO_DEPLOYMENT_STATUS
     ];
   /**
    * ====================================
@@ -243,9 +243,9 @@ export const init = async ({
   // Auto-detect test filename and use a temporary config hash that will be updated later
   const detectedTestFileName = StateManager.autoDetectTestFileName();
   const temporaryConfigHash = 'pending'; // Will be updated when configuration is provided
-  
+
   console.log(`\n🏗️  Initialising E2E environment for ${detectedTestFileName} (configuration will be detected during app registration)`);
-  
+
   const stateManager = new StateManager(network, detectedTestFileName, temporaryConfigHash);
   await stateManager.loadState();
 
@@ -322,15 +322,15 @@ export const init = async ({
    * ====================================
    */
   const mintAgentWalletPkp = async ({
-    toolAndPolicyIpfsCids,
+    abilityAndPolicyIpfsCids,
   }: {
-    toolAndPolicyIpfsCids: string[];
+    abilityAndPolicyIpfsCids: string[];
   }) => {
     const { pkp, isNew } = await stateManager.getOrMintPKP(async () => {
       return await mintNewPkp(
         agentWalletPkpOwnerAccount.privateKey,
         network,
-        ...toolAndPolicyIpfsCids
+        ...abilityAndPolicyIpfsCids
       );
     });
 
@@ -365,17 +365,17 @@ export const init = async ({
         mintAgentWalletPkp: mintAgentWalletPkp,
         permittedAuthMethods: async ({
           agentWalletPkp,
-          toolAndPolicyIpfsCids,
+          abilityAndPolicyIpfsCids,
         }: {
           agentWalletPkp: {
             tokenId: string;
             publicKey: string;
             ethAddress: string;
           };
-          toolAndPolicyIpfsCids: string[];
+          abilityAndPolicyIpfsCids: string[];
         }) => {
           const results: string[] = [];
-          for (const ipfsCid of toolAndPolicyIpfsCids) {
+          for (const ipfsCid of abilityAndPolicyIpfsCids) {
             const result = await agentWalletContractsClient.addPermittedAction({
               pkpTokenId: agentWalletPkp.tokenId,
               ipfsId: ipfsCid,
@@ -402,7 +402,7 @@ export const init = async ({
           delegateeAccount,
           _deploymentStatus
         ),
-        validateToolExecution: createValidateToolExecutionFunction(
+        validateAbilityExecution: createValidateAbilityExecutionFunction(
           appManagerContractsManager
         ),
       },
@@ -413,7 +413,7 @@ export const init = async ({
 
     // @deprecated - use individual functions instead
     // eg. appManager.registerApp()
-    // eg. appManager.validateToolExecution()
+    // eg. appManager.validateAbilityExecution()
     // eg. agentWalletPkpOwner.permitAppVersion()
     chainClient: createChainClient(
       stateManager,

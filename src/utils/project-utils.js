@@ -1,14 +1,14 @@
-const fs = require('fs');
-const path = require('path');
-const chalk = require('chalk');
-const { loadVincentConfig } = require('./config-utils');
+const fs = require("fs");
+const path = require("path");
+const chalk = require("chalk");
+const { loadVincentConfig } = require("./config-utils");
 
 /**
  * Check if a directory is a Vincent project
  */
 function isVincentProject(directory) {
-  const packageJsonPath = path.join(directory, 'package.json');
-  const tsconfigPath = path.join(directory, 'tsconfig.json');
+  const packageJsonPath = path.join(directory, "package.json");
+  const tsconfigPath = path.join(directory, "tsconfig.json");
 
   // Check if package.json exists
   if (!fs.existsSync(packageJsonPath) || !fs.existsSync(tsconfigPath)) {
@@ -16,26 +16,31 @@ function isVincentProject(directory) {
   }
 
   try {
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 
     // Check for Vincent dependencies
     const hasVincentDeps =
       packageJson.dependencies &&
-      (packageJson.dependencies['@lit-protocol/vincent-tool-sdk'] ||
-        packageJson.dependencies['@lit-protocol/vincent-scaffold-sdk']);
+      (packageJson.dependencies["@lit-protocol/vincent-app-sdk"] ||
+        packageJson.dependencies["@lit-protocol/vincent-scaffold-sdk"]);
 
     if (!hasVincentDeps) {
       return { isProject: false };
     }
 
-    // Determine project type by checking for tool or policy implementation files
-    const toolPath = path.join(directory, 'src', 'lib', 'vincent-tool.ts');
-    const policyPath = path.join(directory, 'src', 'lib', 'vincent-policy.ts');
+    // Determine project type by checking for ability or policy implementation files
+    const abilityPath = path.join(
+      directory,
+      "src",
+      "lib",
+      "vincent-ability.ts"
+    );
+    const policyPath = path.join(directory, "src", "lib", "vincent-policy.ts");
 
-    if (fs.existsSync(toolPath)) {
+    if (fs.existsSync(abilityPath)) {
       return {
         isProject: true,
-        type: 'tool',
+        type: "ability",
         name: path.basename(directory),
         packageName: packageJson.name || path.basename(directory),
         path: directory,
@@ -43,7 +48,7 @@ function isVincentProject(directory) {
     } else if (fs.existsSync(policyPath)) {
       return {
         isProject: true,
-        type: 'policy',
+        type: "policy",
         name: path.basename(directory),
         packageName: packageJson.name || path.basename(directory),
         path: directory,
@@ -66,8 +71,8 @@ function getAvailableProjects(type) {
   }
 
   const baseDir =
-    type === 'tool'
-      ? vincentConfig.directories.tools
+    type === "ability"
+      ? vincentConfig.directories.abilities
       : vincentConfig.directories.policies;
   const basePath = path.resolve(baseDir);
 
@@ -81,14 +86,14 @@ function getAvailableProjects(type) {
   for (const entry of entries) {
     if (entry.isDirectory()) {
       const projectPath = path.join(basePath, entry.name);
-      const tsConfigPath = path.join(projectPath, 'tsconfig.json');
+      const tsConfigPath = path.join(projectPath, "tsconfig.json");
       const libPath = path.join(
         projectPath,
-        'src',
-        'lib',
+        "src",
+        "lib",
         `vincent-${type}.ts`
       );
-      const packageJsonPath = path.join(projectPath, 'package.json');
+      const packageJsonPath = path.join(projectPath, "package.json");
 
       // Validate project structure
       if (
@@ -98,7 +103,7 @@ function getAvailableProjects(type) {
       ) {
         try {
           const packageJson = JSON.parse(
-            fs.readFileSync(packageJsonPath, 'utf8')
+            fs.readFileSync(packageJsonPath, "utf8")
           );
           projects.push({
             name: entry.name,
@@ -121,5 +126,5 @@ function getAvailableProjects(type) {
 
 module.exports = {
   isVincentProject,
-  getAvailableProjects
+  getAvailableProjects,
 };

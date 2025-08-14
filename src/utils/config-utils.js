@@ -52,11 +52,11 @@ function createVincentConfig(config) {
   const vincentConfig = {
     package: {
       namespace: config.namespace,
-      toolPrefix: config.toolPrefix,
+      abilityPrefix: config.abilityPrefix,
       policyPrefix: config.policyPrefix,
     },
     directories: {
-      tools: config.toolsDirectory,
+      abilities: config.abilitiesDirectory,
       policies: config.policiesDirectory,
     },
   };
@@ -74,14 +74,16 @@ function createVincentConfig(config) {
 function createEnvSample() {
   try {
     // Read template from the templates directory
-    const templatePath = path.join(__dirname, '..', 'templates', '.env.sample');
-    const envContent = fs.readFileSync(templatePath, 'utf8');
-    
-    const envPath = path.resolve('.env.vincent-sample');
+    const templatePath = path.join(__dirname, "..", "templates", ".env.sample");
+    const envContent = fs.readFileSync(templatePath, "utf8");
+
+    const envPath = path.resolve(".env.vincent-sample");
     fs.writeFileSync(envPath, envContent);
     console.log(chalk.green(`✅ Created .env.vincent-sample file`));
   } catch (error) {
-    console.error(chalk.red(`❌ Error creating .env.vincent-sample: ${error.message}`));
+    console.error(
+      chalk.red(`❌ Error creating .env.vincent-sample: ${error.message}`)
+    );
     throw error;
   }
 }

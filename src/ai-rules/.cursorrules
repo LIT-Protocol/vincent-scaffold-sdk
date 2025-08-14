@@ -1,20 +1,20 @@
 # Vincent Scaffold SDK - Cursor IDE Rules
 
 ## Project Context
-This is the Vincent Scaffold SDK for creating blockchain tools and policies that execute on Lit Actions. The framework has strict execution environment constraints and specific patterns.
+This is the Vincent Scaffold SDK for creating blockchain abilities and policies that execute on Lit Actions. The framework has strict execution environment constraints and specific patterns.
 
 ## Core Constraints - CRITICAL
 
 ### Lit Actions Environment Limitations
-- NEVER use `globalThis` in tools/policies (not available)
-- NEVER use `process.env` in tools/policies (not available)  
-- NEVER use Node.js built-in modules in tools/policies
+- NEVER use `globalThis` in abilities/policies (not available)
+- NEVER use `process.env` in abilities/policies (not available)  
+- NEVER use Node.js built-in modules in abilities/policies
 - NEVER create mock/fake data - ask for clarification instead
 - State does NOT persist between executions
 
 ### laUtils API Restrictions
 - laUtils can ONLY be used in Lit Actions context:
-  - ✅ Tool `execute` hooks
+  - ✅ Ability `execute` hooks
   - ✅ Policy `evaluate` and `commit` hooks
   - ❌ NEVER in `precheck` hooks
 - Import: `import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils"`
@@ -23,18 +23,18 @@ This is the Vincent Scaffold SDK for creating blockchain tools and policies that
 
 ### Schema-First Development
 - Always define Zod schemas before implementation
-- Required schemas: `toolParamsSchema`, `precheckSuccessSchema`, `precheckFailSchema`, `executeSuccessSchema`, `executeFailSchema`
-- Export types: `export type ToolParams = z.infer<typeof toolParamsSchema>;`
+- Required schemas: `abilityParamsSchema`, `precheckSuccessSchema`, `precheckFailSchema`, `executeSuccessSchema`, `executeFailSchema`
+- Export types: `export type AbilityParams = z.infer<typeof abilityParamsSchema>;`
 
 ### File Structure Conventions
 ```
 vincent-packages/
-├── tools/
-│   └── tool-name/
+├── abilities/
+│   └── ability-name/
 │       ├── src/lib/
 │       │   ├── schemas.ts           # Zod validation schemas
-│       │   ├── vincent-tool.ts      # Main tool implementation
-│       │   └── helpers/index.ts     # Tool-specific utilities
+│       │   ├── vincent-ability.ts      # Main ability implementation
+│       │   └── helpers/index.ts     # Ability-specific utilities
 │       ├── package.json
 │       └── .gitignore
 └── policies/
@@ -47,24 +47,24 @@ vincent-packages/
         └── .gitignore
 ```
 
-### Tool Implementation Pattern
+### Ability Implementation Pattern
 ```typescript
-import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
-export const vincentTool = createVincentTool({
+export const vincentAbility = createVincentAbility({
   packageName: "{{packageName}}" as const,
-  toolParamsSchema,
+  abilityParamsSchema,
   
-  precheck: async ({ toolParams }, { succeed, fail }) => {
+  precheck: async ({ abilityParams }, { succeed, fail }) => {
     // NO laUtils here - validation only
-    if (!toolParams.to.startsWith("0x")) {
+    if (!abilityParams.to.startsWith("0x")) {
       return fail({ error: "Invalid address" });
     }
     return succeed({ validated: true });
   },
 
-  execute: async ({ toolParams }, { succeed, fail, delegation }) => {
+  execute: async ({ abilityParams }, { succeed, fail, delegation }) => {
     // laUtils available here
     const provider = new ethers.providers.JsonRpcProvider(
   "https://yellowstone-rpc.litprotocol.com/"
@@ -79,11 +79,11 @@ export const vincentTool = createVincentTool({
 export const vincentPolicy = createVincentPolicy({
   packageName: "{{packageName}}" as const,
   
-  precheck: async ({ toolParams, userParams }, { allow, deny }) => {
+  precheck: async ({ abilityParams, userParams }, { allow, deny }) => {
     // NO laUtils here
   },
   
-  evaluate: async ({ toolParams, userParams }, { allow, deny }) => {
+  evaluate: async ({ abilityParams, userParams }, { allow, deny }) => {
     // laUtils available here
     const result = await Lit.Actions.runOnce({ /*...*/ });
   },
@@ -99,34 +99,34 @@ export const vincentPolicy = createVincentPolicy({
 
 ## Template Variables
 When working with templates or creating new components:
-- `{{packageName}}` - Full package name (e.g., `@company/vincent-tool-name`)
-- `{{name}}` - Component name (e.g., `my-tool`)
+- `{{packageName}}` - Full package name (e.g., `@company/vincent-ability-name`)
+- `{{name}}` - Component name (e.g., `my-ability`)
 - `{{namespace}}` - Package namespace (e.g., `@company`)
-- `{{policyPackageName}}` - For tools referencing policies
+- `{{policyPackageName}}` - For abilities referencing policies
 - `{{camelCaseName}}` - CamelCase version of name
 
 ## Import Patterns
 
-### Tool/Policy Development
+### Ability/Policy Development
 ```typescript
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
-import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
 import { z } from "zod";
 ```
 
 ### E2E Testing
 ```typescript
-import { bundledVincentTool } from "../../vincent-packages/tools/my-tool/dist/index.js";
+import { bundledVincentAbility } from "../../vincent-packages/abilities/my-ability/dist/index.js";
 import { vincentPolicyMetadata } from "../../vincent-packages/policies/my-policy/dist/index.js";
 ```
 
 ## Build Script Management
-When adding new tools/policies, ALWAYS update root `package.json`:
+When adding new abilities/policies, ALWAYS update root `package.json`:
 
 ```json
 {
   "scripts": {
-    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/my-policy && npm install && npm run build && cd ../../tools/my-tool && npm install && npm run build'"
+    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/my-policy && npm install && npm run build && cd ../../abilities/my-ability && npm install && npm run build'"
   }
 }
 ```
@@ -137,7 +137,7 @@ When adding new tools/policies, ALWAYS update root `package.json`:
 npx @lit-protocol/vincent-scaffold-sdk init
 
 # Create components
-npx @lit-protocol/vincent-scaffold-sdk add tool my-tool
+npx @lit-protocol/vincent-scaffold-sdk add ability my-ability
 npx @lit-protocol/vincent-scaffold-sdk add policy my-policy
 
 # Build and test
@@ -145,7 +145,7 @@ npm run vincent:build    # Build all components
 npm run vincent:e2e      # Run E2E tests
 npm run vincent:reset    # Reset test state
 
-# Package operations (from tool/policy directory)
+# Package operations (from ability/policy directory)
 npx @lit-protocol/vincent-scaffold-sdk pkg build
 npx @lit-protocol/vincent-scaffold-sdk pkg clean
 ```
@@ -162,7 +162,7 @@ npx @lit-protocol/vincent-scaffold-sdk pkg clean
 ### Error Handling
 ```typescript
 // Structured error patterns
-interface ToolError {
+interface AbilityError {
   code: 'VALIDATION_ERROR' | 'EXECUTION_ERROR';
   message: string;
   details?: Record<string, unknown>;
@@ -185,10 +185,10 @@ z.string()
 ```
 
 ## Forbidden Patterns
-- Using environment variables in tools/policies
+- Using environment variables in abilities/policies
 - Creating mock/fake data
 - Using laUtils in precheck hooks
-- Accessing file system in tools/policies
+- Accessing file system in abilities/policies
 - Using Node.js built-ins in Lit Actions context
 - Forgetting to update build scripts when adding components
 

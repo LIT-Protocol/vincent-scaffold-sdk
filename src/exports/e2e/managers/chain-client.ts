@@ -6,10 +6,10 @@ import { StateManager } from "./state-manager";
 
 // Utility function to convert 2D arrays to 3D arrays as expected by smart contracts
 function convert2DTo3DArrays(
-  toolIpfsCids: string[],
-  toolPolicies: string[][],
-  toolPolicyParameterNames: string[][],
-  toolPolicyParameterTypes: number[][]
+  abilityIpfsCids: string[],
+  abilityPolicies: string[][],
+  abilityPolicyParameterNames: string[][],
+  abilityPolicyParameterTypes: number[][]
 ): {
   names3D: string[][][];
   types3D: number[][][];
@@ -17,13 +17,13 @@ function convert2DTo3DArrays(
   const names3D: string[][][] = [];
   const types3D: number[][][] = [];
 
-  // For each tool
-  for (let toolIndex = 0; toolIndex < toolIpfsCids.length; toolIndex++) {
-    const toolNames: string[][] = [];
-    const toolTypes: number[][] = [];
+  // For each ability
+  for (let abilityIndex = 0; abilityIndex < abilityIpfsCids.length; abilityIndex++) {
+    const abilityNames: string[][] = [];
+    const abilityTypes: number[][] = [];
 
     // For each policy in this tool
-    const policies = toolPolicies[toolIndex];
+    const policies = abilityPolicies[abilityIndex];
     for (
       let policyIndex = 0;
       policyIndex < policies.length;
@@ -35,27 +35,27 @@ function convert2DTo3DArrays(
       // The 2D input structure maps: [tool][parameter] but we need [tool][policy][parameter]
       // Since we have one policy per tool in most cases, we distribute parameters across the policy
       if (
-        toolPolicyParameterNames[toolIndex] &&
-        toolPolicyParameterTypes[toolIndex]
+        abilityPolicyParameterNames[abilityIndex] &&
+        abilityPolicyParameterTypes[abilityIndex]
       ) {
         // For the first (and usually only) policy, add all parameters for this tool
         if (policyIndex === 0) {
           // Add all parameter names and types for this tool to the first policy
-          for (let paramIndex = 0; paramIndex < toolPolicyParameterNames[toolIndex].length; paramIndex++) {
-            policyNames.push(toolPolicyParameterNames[toolIndex][paramIndex]);
-            policyTypes.push(toolPolicyParameterTypes[toolIndex][paramIndex]);
+          for (let paramIndex = 0; paramIndex < abilityPolicyParameterNames[abilityIndex].length; paramIndex++) {
+            policyNames.push(abilityPolicyParameterNames[abilityIndex][paramIndex]);
+            policyTypes.push(abilityPolicyParameterTypes[abilityIndex][paramIndex]);
           }
         }
         // For additional policies (if any), they would have empty parameters
         // This matches the expected smart contract structure
       }
 
-      toolNames.push(policyNames);
-      toolTypes.push(policyTypes);
+      abilityNames.push(policyNames);
+      abilityTypes.push(policyTypes);
     }
 
-    names3D.push(toolNames);
-    types3D.push(toolTypes);
+    names3D.push(abilityNames);
+    types3D.push(abilityTypes);
   }
 
   return { names3D, types3D };
@@ -69,34 +69,34 @@ export interface PublicViemClientManager {
 
 export interface ChainClient {
   registerApp: (params: {
-    toolIpfsCids: string[];
-    toolPolicies: string[][];
-    toolPolicyParameterNames: string[][];
-    toolPolicyParameterTypes: number[][];
-    toolPolicyParameterValues?: string[][];
+    abilityIpfsCids: string[];
+    abilityPolicies: string[][];
+    abilityPolicyParameterNames: string[][];
+    abilityPolicyParameterTypes: number[][];
+    abilityPolicyParameterValues?: string[][];
   }) => Promise<{ appId: string; appVersion: string }>;
   registerNextAppVersion: (params: {
     appId: string;
-    toolIpfsCids: string[];
-    toolPolicies: string[][];
-    toolPolicyParameterNames: string[][];
-    toolPolicyParameterTypes: number[][];
-    toolPolicyParameterValues?: string[][];
+    abilityIpfsCids: string[];
+    abilityPolicies: string[][];
+    abilityPolicyParameterNames: string[][];
+    abilityPolicyParameterTypes: number[][];
+    abilityPolicyParameterValues?: string[][];
   }) => Promise<{ appId: string; appVersion: string }>;
   permitAppVersion: (params: {
     pkpTokenId: string;
     appId: string;
     appVersion: string;
-    toolIpfsCids: string[];
+    abilityIpfsCids: string[];
     policyIpfsCids: string[][];
     policyParameterNames: string[][];
     policyParameterValues: string[][];
     policyParameterTypes: number[][];
   }) => Promise<{ txHash: string | null; txReceipt: any; skipped?: boolean }>;
-  validateToolExecution: (params: {
+  validateAbilityExecution: (params: {
     delegateeAddress: string;
     pkpTokenId: string;
-    toolIpfsCid: string;
+    abilityIpfsCid: string;
   }) => Promise<{
     isPermitted: boolean;
     appId: string;
@@ -120,21 +120,21 @@ export const createRegisterAppFunction = (
   deploymentStatus: number
 ) => {
   return async ({
-    toolIpfsCids,
-    toolPolicies,
-    toolPolicyParameterNames,
-    toolPolicyParameterTypes,
-    toolPolicyParameterValues,
+    abilityIpfsCids,
+    abilityPolicies,
+    abilityPolicyParameterNames,
+    abilityPolicyParameterTypes,
+    abilityPolicyParameterValues,
   }: {
-    toolIpfsCids: string[];
-    toolPolicies: string[][];
-    toolPolicyParameterNames: string[][];
-    toolPolicyParameterTypes: number[][];
-    toolPolicyParameterValues?: string[][];
+    abilityIpfsCids: string[];
+    abilityPolicies: string[][];
+    abilityPolicyParameterNames: string[][];
+    abilityPolicyParameterTypes: number[][];
+    abilityPolicyParameterValues?: string[][];
   }) => {
 
-    // Set the real configuration hash based on tool/policy CIDs before any state operations
-    stateManager.setConfigurationFromCIDs(toolIpfsCids, toolPolicies);
+    // Set the real configuration hash based on ability/policy CIDs before any state operations
+    stateManager.setConfigurationFromCIDs(abilityIpfsCids, abilityPolicies);
 
     const delegateeAddress = delegateeAccount.address;
 
@@ -143,17 +143,17 @@ export const createRegisterAppFunction = (
       async () => {
         // Convert 2D arrays to 3D arrays as expected by the smart contract
         const { names3D, types3D } = convert2DTo3DArrays(
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames,
-          toolPolicyParameterTypes
+          abilityIpfsCids,
+          abilityPolicies,
+          abilityPolicyParameterNames,
+          abilityPolicyParameterTypes
         );
 
-        const versionTools = {
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames: names3D,
-          toolPolicyParameterTypes: types3D,
+        const versionAbilities = {
+          abilityIpfsCids,
+          abilityPolicies,
+          abilityPolicyParameterNames: names3D,
+          abilityPolicyParameterTypes: types3D,
         };
 
 
@@ -168,8 +168,8 @@ export const createRegisterAppFunction = (
               authorizedRedirectUris: MOCK_DATA.AUTHORIZED_REDIRECT_URIS,
               delegatees: [delegateeAddress as `0x${string}`],
             },
-            // VersionTools
-            versionTools,
+            // VersionAbilities
+            versionAbilities,
           ]);
 
         const txReceipt =
@@ -198,20 +198,20 @@ export const createRegisterAppFunction = (
         return { appId, appVersion };
       },
       async (appId: string) => {
-        // Register next app version for existing app when tools/policies change
+        // Register next app version for existing app when abilities/policies change
         // Convert 2D arrays to 3D arrays as expected by the smart contract
         const { names3D, types3D } = convert2DTo3DArrays(
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames,
-          toolPolicyParameterTypes
+          abilityIpfsCids,
+          abilityPolicies,
+          abilityPolicyParameterNames,
+          abilityPolicyParameterTypes
         );
 
-        const versionTools = {
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames: names3D,
-          toolPolicyParameterTypes: types3D,
+        const versionAbilities = {
+          abilityIpfsCids,
+          abilityPolicies,
+          abilityPolicyParameterNames: names3D,
+          abilityPolicyParameterTypes: types3D,
         };
 
 
@@ -219,7 +219,7 @@ export const createRegisterAppFunction = (
           // @ts-ignore
           await appManagerContractsManager.app.write.registerNextAppVersion([
             BigInt(appId),
-            versionTools,
+            versionAbilities,
           ]);
 
         const txReceipt =
@@ -246,11 +246,11 @@ export const createRegisterAppFunction = (
 
         return { appId, appVersion };
       },
-      toolIpfsCids,
-      toolPolicies,
-      toolPolicyParameterNames,
-      toolPolicyParameterTypes,
-      toolPolicyParameterValues
+      abilityIpfsCids,
+      abilityPolicies,
+      abilityPolicyParameterNames,
+      abilityPolicyParameterTypes,
+      abilityPolicyParameterValues
     );
 
     await stateManager.saveState();
@@ -265,39 +265,39 @@ export const createRegisterNextAppVersionFunction = (
 ) => {
   return async ({
     appId,
-    toolIpfsCids,
-    toolPolicies,
-    toolPolicyParameterNames,
-    toolPolicyParameterTypes,
-    toolPolicyParameterValues,
+    abilityIpfsCids,
+    abilityPolicies,
+    abilityPolicyParameterNames,
+    abilityPolicyParameterTypes,
+    abilityPolicyParameterValues,
   }: {
     appId: string;
-    toolIpfsCids: string[];
-    toolPolicies: string[][];
-    toolPolicyParameterNames: string[][];
-    toolPolicyParameterTypes: number[][];
-    toolPolicyParameterValues?: string[][];
+    abilityIpfsCids: string[];
+    abilityPolicies: string[][];
+    abilityPolicyParameterNames: string[][];
+    abilityPolicyParameterTypes: number[][];
+    abilityPolicyParameterValues?: string[][];
   }) => {
     // Convert 2D arrays to 3D arrays as expected by the smart contract
     const { names3D, types3D } = convert2DTo3DArrays(
-      toolIpfsCids,
-      toolPolicies,
-      toolPolicyParameterNames,
-      toolPolicyParameterTypes
+      abilityIpfsCids,
+      abilityPolicies,
+      abilityPolicyParameterNames,
+      abilityPolicyParameterTypes
     );
 
-    const versionTools = {
-      toolIpfsCids,
-      toolPolicies,
-      toolPolicyParameterNames: names3D,
-      toolPolicyParameterTypes: types3D,
+    const versionAbilities = {
+      abilityIpfsCids,
+      abilityPolicies,
+      abilityPolicyParameterNames: names3D,
+      abilityPolicyParameterTypes: types3D,
     };
 
     const txHash =
       // @ts-ignore
       await appManagerContractsManager.app.write.registerNextAppVersion([
         BigInt(appId),
-        versionTools,
+        versionAbilities,
       ]);
     const txReceipt =
       await publicViemClientManager.yellowstone.waitForTransactionReceipt({
@@ -336,7 +336,7 @@ export const createPermitAppVersionFunction = (
     pkpTokenId,
     appId,
     appVersion,
-    toolIpfsCids,
+    abilityIpfsCids,
     policyIpfsCids,
     policyParameterNames,
     policyParameterValues,
@@ -345,7 +345,7 @@ export const createPermitAppVersionFunction = (
     pkpTokenId: string;
     appId: string;
     appVersion: string;
-    toolIpfsCids: string[];
+    abilityIpfsCids: string[];
     policyIpfsCids: string[][];
     policyParameterNames: string[][];
     policyParameterValues: string[][];
@@ -365,34 +365,34 @@ export const createPermitAppVersionFunction = (
     console.log(chalk.yellow(`= Permitting app version for PKP...`));
 
     // Convert 2D arrays to 3D arrays as expected by the smart contract
-    // We receive flat lists per tool and need to convert to [tool][policy][parameter]
+    // We receive flat lists per ability and need to convert to [ability][policy][parameter]
     const bytesParameterValues: `0x${string}`[][][] = [];
     const names3D: string[][][] = [];
 
-    // For each tool
-    for (let toolIndex = 0; toolIndex < toolIpfsCids.length; toolIndex++) {
-      const toolBytesValues: `0x${string}`[][] = [];
-      const toolNames: string[][] = [];
+    // For each ability
+    for (let abilityIndex = 0; abilityIndex < abilityIpfsCids.length; abilityIndex++) {
+      const abilityBytesValues: `0x${string}`[][] = [];
+      const abilityNames: string[][] = [];
 
-      // For each policy in this tool
-      const policies = policyIpfsCids[toolIndex];
+      // For each policy in this ability
+      const policies = policyIpfsCids[abilityIndex];
       for (let policyIndex = 0; policyIndex < policies.length; policyIndex++) {
         const policyBytesValues: `0x${string}`[] = [];
         const policyNames: string[] = [];
 
         // Handle multiple parameters per policy
-        if (policyParameterValues[toolIndex] &&
-          policyParameterValues[toolIndex][policyIndex] !== undefined
+        if (policyParameterValues[abilityIndex] &&
+          policyParameterValues[abilityIndex][policyIndex] !== undefined
         ) {
-          const toolParameterValues = policyParameterValues[toolIndex];
-          const toolParameterNames = policyParameterNames[toolIndex];
-          const toolParameterTypes = policyParameterTypes[toolIndex];
+          const abilityParameterValues = policyParameterValues[abilityIndex];
+          const abilityParameterNames = policyParameterNames[abilityIndex];
+          const abilityParameterTypes = policyParameterTypes[abilityIndex];
 
           // For each parameter in this policy
-          for (let paramIndex = 0; paramIndex < toolParameterValues.length; paramIndex++) {
-            const value = toolParameterValues[paramIndex];
-            const paramName = toolParameterNames[paramIndex];
-            const paramType = toolParameterTypes[paramIndex];
+          for (let paramIndex = 0; paramIndex < abilityParameterValues.length; paramIndex++) {
+            const value = abilityParameterValues[paramIndex];
+            const paramName = abilityParameterNames[paramIndex];
+            const paramType = abilityParameterTypes[paramIndex];
 
             // Map parameter type ID to ABI type
             let abiType: string;
@@ -464,19 +464,19 @@ export const createPermitAppVersionFunction = (
           }
         }
 
-        toolBytesValues.push(policyBytesValues);
-        toolNames.push(policyNames);
+        abilityBytesValues.push(policyBytesValues);
+        abilityNames.push(policyNames);
       }
 
-      bytesParameterValues.push(toolBytesValues);
-      names3D.push(toolNames);
+      bytesParameterValues.push(abilityBytesValues);
+      names3D.push(abilityNames);
     }
 
     console.log("🔍 Debug - permitAppVersion args:");
     console.log("  pkpTokenId:", pkpTokenId);
     console.log("  appId:", appId);
     console.log("  appVersion:", appVersion);
-    console.log("  toolIpfsCids:", toolIpfsCids);
+    console.log("  abilityIpfsCids:", abilityIpfsCids);
     console.log("  policyIpfsCids:", policyIpfsCids);
     console.log("  policyParameterNames (3D):", names3D);
     console.log("  bytesParameterValues (3D):", bytesParameterValues);
@@ -486,7 +486,7 @@ export const createPermitAppVersionFunction = (
       BigInt(pkpTokenId),
       BigInt(appId),
       BigInt(appVersion),
-      toolIpfsCids,
+      abilityIpfsCids,
       policyIpfsCids,
       names3D, // Use 3D array
       bytesParameterValues,
@@ -521,26 +521,26 @@ export const createPermitAppVersionFunction = (
   };
 };
 
-export const createValidateToolExecutionFunction = (
+export const createValidateAbilityExecutionFunction = (
   appManagerContractsManager: ReturnType<typeof createContractsManager>
 ) => {
   return async ({
     delegateeAddress,
     pkpTokenId,
-    toolIpfsCid,
+    abilityIpfsCid,
   }: {
     delegateeAddress: string;
     pkpTokenId: string;
-    toolIpfsCid: string;
+    abilityIpfsCid: string;
   }) => {
     console.log(
       chalk.blue(`=
- Validating tool execution permissions...`)
+ Validating ability execution permissions...`)
     );
 
     const validationResult =
-      (await appManagerContractsManager.userView.read.validateToolExecutionAndGetPolicies(
-        [delegateeAddress as `0x${string}`, BigInt(pkpTokenId), toolIpfsCid]
+      (await appManagerContractsManager.userView.read.validateAbilityExecutionAndGetPolicies(
+        [delegateeAddress as `0x${string}`, BigInt(pkpTokenId), abilityIpfsCid]
       )) as {
         isPermitted: boolean;
         appId: bigint;
@@ -602,7 +602,7 @@ export const createChainClient = (
       agentWalletPkpOwnerContractsManager,
       publicViemClientManager
     ),
-    validateToolExecution: createValidateToolExecutionFunction(
+    validateAbilityExecution: createValidateAbilityExecutionFunction(
       appManagerContractsManager
     ),
   };

@@ -17,7 +17,7 @@ const chalk = require("chalk").default || require("chalk");
 const MAIN_PACKAGE_PATH = path.join(__dirname, "..", "package.json");
 const TEMPLATE_PATHS = [
   path.join(__dirname, "..", "src", "templates", "policy", "package.json"),
-  path.join(__dirname, "..", "src", "templates", "tool", "package.json"),
+  path.join(__dirname, "..", "src", "templates", "ability", "package.json"),
 ];
 const DEPENDENCY_NAME = "@lit-protocol/vincent-scaffold-sdk";
 

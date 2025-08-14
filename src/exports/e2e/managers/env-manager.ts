@@ -8,7 +8,7 @@ const EnvSchema = z.object({
     .string()
     .min(1)
     .describe(
-      "Pinata JWT is required to deploy (pin) the tools (Lit Actions) to IPFS."
+      "Pinata JWT is required to deploy (pin) the abilities (Lit Actions) to IPFS."
     ),
   TEST_APP_MANAGER_PRIVATE_KEY: z
     .string()

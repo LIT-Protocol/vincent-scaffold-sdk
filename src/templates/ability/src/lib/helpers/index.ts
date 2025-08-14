@@ -1,5 +1,5 @@
 /**
- * Helper functions for the {{name}} tool
+ * Helper functions for the {{name}} ability
  */
 
 /**

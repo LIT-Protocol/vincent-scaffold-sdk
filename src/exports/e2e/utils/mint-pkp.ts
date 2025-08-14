@@ -17,16 +17,16 @@ export interface PKPInfo {
  * Helper function to mint a new PKP and return its information
  * @param pkpOwnerPrivateKey Private key of the wallet that will own the PKP
  * @param litNetwork Lit network to use (e.g., "datil", "datil-test", "datil-dev")
- * @param toolAndPolicyIpfsCids IPFS CIDs for tools and policies to authorize
+ * @param abilityAndPolicyIpfsCids IPFS CIDs for abilities and policies to authorize
  * @returns PKP information including tokenId, publicKey, and ethAddress
  */
 export const mintNewPkp = async (
   pkpOwnerPrivateKey: string,
   litNetwork: string,
-  ...toolAndPolicyIpfsCids: string[]
+  ...abilityAndPolicyIpfsCids: string[]
 ): Promise<PKPInfo> => {
   console.log(
-    `🔁 Minting PKP for ${toolAndPolicyIpfsCids.length} tools and policies on "${litNetwork}" network`
+    `🔁 Minting PKP for ${abilityAndPolicyIpfsCids.length} abilities and policies on "${litNetwork}" network`
   );
 
   // Create ethers provider and owner wallet
@@ -48,25 +48,25 @@ export const mintNewPkp = async (
   // Dynamically create auth method types array
   const authMethodTypes = [
     AUTH_METHOD_TYPE.EthWallet,
-    ...toolAndPolicyIpfsCids.map(() => AUTH_METHOD_TYPE.LitAction),
+    ...abilityAndPolicyIpfsCids.map(() => AUTH_METHOD_TYPE.LitAction),
   ];
 
   // Dynamically create auth method IDs array
   const authMethodIds = [
     pkpOwnerWallet.address,
-    ...toolAndPolicyIpfsCids.map(
+    ...abilityAndPolicyIpfsCids.map(
       (ipfsCid) =>
         `0x${Buffer.from(ethers.utils.base58.decode(ipfsCid)).toString("hex")}`
     ),
   ];
 
   // Create auth method pubkeys array (all "0x" for our use case)
-  const authMethodPubkeys = ["0x", ...toolAndPolicyIpfsCids.map(() => "0x")];
+  const authMethodPubkeys = ["0x", ...abilityAndPolicyIpfsCids.map(() => "0x")];
 
   // Create auth method scopes array
   const authMethodScopes = [
     [AUTH_METHOD_SCOPE.SignAnything],
-    ...toolAndPolicyIpfsCids.map(() => [AUTH_METHOD_SCOPE.SignAnything]),
+    ...abilityAndPolicyIpfsCids.map(() => [AUTH_METHOD_SCOPE.SignAnything]),
   ];
 
   const mintPkpTx =

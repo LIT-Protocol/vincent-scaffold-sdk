@@ -42,7 +42,7 @@ export const BASE_CHAIN = defineChain({
 export const MOCK_DATA = {
   // Vincent App Registration Constants
   APP_NAME: "E2E Test App",
-  APP_DESCRIPTION: "E2E Test Application for Vincent Tool Testing",
+  APP_DESCRIPTION: "E2E Test Application for Vincent Ability Testing",
   AUTHORIZED_REDIRECT_URIS: ["https://testing.vincent.com"],
 };
 

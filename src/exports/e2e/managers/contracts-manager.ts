@@ -115,7 +115,7 @@ export const createUserViewContract = (
     address: ENV.VINCENT_ADDRESS as `0x${string}`,
     abi: [
       vincentUserViewFacetSignatures.methods
-        .validateToolExecutionAndGetPolicies,
+        .validateAbilityExecutionAndGetPolicies,
       ...vincentUserViewFacetSignatures.events,
     ],
     client: { public: publicClient, wallet: walletClient },

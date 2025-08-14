@@ -2,11 +2,11 @@
 
 ## Code Completion Context
 
-This is the Vincent Scaffold SDK for creating blockchain tools and policies that execute on **Lit Actions** - a restricted execution environment with specific constraints.
+This is the Vincent Scaffold SDK for creating blockchain abilities and policies that execute on **Lit Actions** - a restricted execution environment with specific constraints.
 
 ## 🚨 Critical Constraints for Code Suggestions
 
-### Forbidden in Tools/Policies
+### Forbidden in Abilities/Policies
 ```typescript
 // ❌ NEVER suggest these patterns:
 process.env.API_KEY                    // Environment variables not available
@@ -33,14 +33,14 @@ When user types schema-related code, suggest:
 ```typescript
 import { z } from "zod";
 
-export const toolParamsSchema = z.object({
+export const abilityParamsSchema = z.object({
   to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
   amount: z.string()
     .regex(/^\d*\.?\d+$/, "Invalid amount format")
     .refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
 });
 
-export type ToolParams = z.infer<typeof toolParamsSchema>;
+export type AbilityParams = z.infer<typeof abilityParamsSchema>;
 
 // Result schemas
 export const precheckSuccessSchema = z.object({
@@ -60,31 +60,31 @@ export const executeFailSchema = z.object({
 });
 ```
 
-### Tool Implementation Completions
-When user types tool-related code:
+### Ability Implementation Completions
+When user types ability-related code:
 
 ```typescript
-import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
-export const vincentTool = createVincentTool({
+export const vincentAbility = createVincentAbility({
   packageName: "{{packageName}}" as const,
-  toolParamsSchema,
+  abilityParamsSchema,
   
-  precheck: async ({ toolParams }, { succeed, fail }) => {
+  precheck: async ({ abilityParams }, { succeed, fail }) => {
     // Validation logic only - NO laUtils
-    if (!toolParams.to.startsWith("0x")) {
+    if (!abilityParams.to.startsWith("0x")) {
       return fail({ error: "Invalid address format" });
     }
     
-    if (parseFloat(toolParams.amount) <= 0) {
+    if (parseFloat(abilityParams.amount) <= 0) {
       return fail({ error: "Amount must be positive" });
     }
     
     return succeed({ validated: true, estimatedGas: 21000 });
   },
 
-  execute: async ({ toolParams }, { succeed, fail, delegation, policiesContext }) => {
+  execute: async ({ abilityParams }, { succeed, fail, delegation, policiesContext }) => {
     try {
       // laUtils available here
       const provider = new ethers.providers.JsonRpcProvider(
@@ -96,9 +96,9 @@ export const vincentTool = createVincentTool({
         pkpPublicKey: delegation.delegatorPkpInfo.publicKey,
         callerAddress: delegation.delegatorPkpInfo.ethAddress,
         abi: ERC20_ABI,
-        contractAddress: toolParams.tokenAddress,
+        contractAddress: abilityParams.tokenAddress,
         functionName: "transfer",
-        args: [toolParams.to, parseEther(toolParams.amount)],
+        args: [abilityParams.to, parseEther(abilityParams.amount)],
         overrides: { gasLimit: 100000 }
       });
 
@@ -114,8 +114,8 @@ export const vincentTool = createVincentTool({
 
       return succeed({
         txHash,
-        to: toolParams.to,
-        amount: toolParams.amount,
+        to: abilityParams.to,
+        amount: abilityParams.amount,
         timestamp: Date.now()
       });
     } catch (error) {
@@ -132,15 +132,15 @@ export const vincentTool = createVincentTool({
 When user types policy-related code:
 
 ```typescript
-import { createVincentPolicy } from "@lit-protocol/vincent-tool-sdk";
+import { createVincentPolicy } from "@lit-protocol/vincent-app-sdk";
 
 export const vincentPolicy = createVincentPolicy({
   packageName: "{{packageName}}" as const,
-  toolParamsSchema,
+  abilityParamsSchema,
   userParamsSchema,
   commitParamsSchema,
   
-  precheck: async ({ toolParams, userParams }, { allow, deny, delegation }) => {
+  precheck: async ({ abilityParams, userParams }, { allow, deny, delegation }) => {
     // Early validation - NO laUtils
     const { maxSends, timeWindowSeconds } = userParams;
     const { ethAddress } = delegation.delegatorPkpInfo;
@@ -163,12 +163,12 @@ export const vincentPolicy = createVincentPolicy({
     });
   },
 
-  evaluate: async ({ toolParams, userParams }, { allow, deny }) => {
+  evaluate: async ({ abilityParams, userParams }, { allow, deny }) => {
     // Runtime checks - laUtils available
     const result = await Lit.Actions.runOnce(
       { waitForResponse: true, name: "evaluatePolicy" },
       async () => {
-        return await checkPolicyConditions(toolParams, userParams);
+        return await checkPolicyConditions(abilityParams, userParams);
       }
     );
     
@@ -246,12 +246,12 @@ When user types test-related code:
 
 ```typescript
 // Import pattern for E2E tests
-import { bundledVincentTool } from "../../vincent-packages/tools/my-tool/dist/index.js";
+import { bundledVincentAbility } from "../../vincent-packages/abilities/my-ability/dist/index.js";
 import { vincentPolicyMetadata } from "../../vincent-packages/policies/my-policy/dist/index.js";
 
 // Test configuration
-const toolConfig = createVincentToolConfig({
-  tool: bundledVincentTool,
+const abilityConfig = createVincentAbilityConfig({
+  ability: bundledVincentAbility,
   userParams: {
     to: "0x742d35Cc6635C0532925a3b8D400631707BFFfcc",
     amount: "0.001",
@@ -260,8 +260,8 @@ const toolConfig = createVincentToolConfig({
 });
 
 // Execute with policies
-const result = await chainClient.executeTools({
-  tools: [toolConfig],
+const result = await chainClient.executeAbilities({
+  abilities: [abilityConfig],
   policies: [policyMetadata]
 });
 
@@ -317,7 +317,7 @@ const nativeTxHash = await laUtils.transaction.handler.nativeSend({
 // ✅ Suggest: Use laUtils APIs or external services
 
 // When user types laUtils in precheck, suggest:
-// ❌ precheck: async ({ toolParams }, { succeed, fail }) => {
+// ❌ precheck: async ({ abilityParams }, { succeed, fail }) => {
 //      const provider = new ethers.providers.JsonRpcProvider(
   "https://yellowstone-rpc.litprotocol.com/"
 );
@@ -348,7 +348,7 @@ When user types template-related patterns:
 
 ```typescript
 // Structured error handling
-interface ToolError {
+interface AbilityError {
   code: 'VALIDATION_ERROR' | 'EXECUTION_ERROR' | 'NETWORK_ERROR';
   message: string;
   details?: Record<string, unknown>;
@@ -357,7 +357,7 @@ interface ToolError {
 // Result pattern
 const handleOperation = async (): Promise<
   { success: true; result: T } | 
-  { success: false; error: ToolError }
+  { success: false; error: AbilityError }
 > => {
   try {
     const result = await executeOperation();
@@ -379,15 +379,15 @@ const handleOperation = async (): Promise<
 
 ```typescript
 // Core Vincent imports
-import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
-import { createVincentPolicy } from "@lit-protocol/vincent-tool-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
+import { createVincentPolicy } from "@lit-protocol/vincent-app-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
 // Schema validation
 import { z } from "zod";
 
 // Type definitions
-export type ToolParams = z.infer<typeof toolParamsSchema>;
+export type AbilityParams = z.infer<typeof abilityParamsSchema>;
 export type UserParams = z.infer<typeof userParamsSchema>;
 ```
 

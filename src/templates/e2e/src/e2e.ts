@@ -8,10 +8,10 @@ import {
 // Apply log suppression FIRST, before any imports that might trigger logs
 suppressLitLogs(false);
 
-import { getVincentToolClient } from "@lit-protocol/vincent-app-sdk";
-// Tools and Policies that we wil be testing
+import { getVincentAbilityClient } from "@lit-protocol/vincent-app-sdk";
+// Abilities and Policies that we wil be testing
 import { vincentPolicyMetadata as sendLimitPolicyMetadata } from "../../vincent-packages/policies/send-counter-limit/dist/index.js";
-import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/tools/native-send/dist/index.js";
+import { bundledVincentAbility as nativeSendAbility } from "../../vincent-packages/abilities/native-send/dist/index.js";
 
 (async () => {
   /**
@@ -26,47 +26,47 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
 
   /**
    * ====================================
-   * (🫵 You) Prepare the tools and policies
+   * (🫵 You) Prepare the abilities and policies
    * ====================================
    */
-  const nativeSendToolClient = getVincentToolClient({
-    bundledVincentTool: nativeSendTool,
+  const nativeSendAbilityClient = getVincentAbilityClient({
+    bundledVincentAbility: nativeSendAbility,
     ethersSigner: accounts.delegatee.ethersWallet,
   });
 
   /**
    * ====================================
-   * Prepare the IPFS CIDs for the tools and policies
-   * NOTE: All arrays below are parallel - each index corresponds to the same tool.
+   * Prepare the IPFS CIDs for the abilities and policies
+   * NOTE: All arrays below are parallel - each index corresponds to the same ability.
    * ❗️If you change the policy parameter values, you will need to reset the state file.
    * You can do this by running: npm run vincent:reset
    * ====================================
    */
   const appConfig = createAppConfig(
     {
-      toolIpfsCids: [
-        // helloWorldTool.ipfsCid,
-        nativeSendTool.ipfsCid,
-        // ...add more tool IPFS CIDs here
+      abilityIpfsCids: [
+        // helloWorldAbility.ipfsCid,
+        nativeSendAbility.ipfsCid,
+        // ...add more ability IPFS CIDs here
       ],
-      toolPolicies: [
+      abilityPolicies: [
         // [
         //   // fooLimitPolicyMetadata.ipfsCid
         // ],
         [
-          sendLimitPolicyMetadata.ipfsCid, // Enable send-counter-limit policy for native-send tool
+          sendLimitPolicyMetadata.ipfsCid, // Enable send-counter-limit policy for native-send ability
         ],
       ],
-      toolPolicyParameterNames: [
-        // [], // No policy parameter names for helloWorldTool
-        ["maxSends", "timeWindowSeconds"], // Policy parameter names for nativeSendTool
+      abilityPolicyParameterNames: [
+        // [], // No policy parameter names for helloWorldAbility
+        ["maxSends", "timeWindowSeconds"], // Policy parameter names for nativeSendAbility
       ],
-      toolPolicyParameterTypes: [
-        // [], // No policy parameter types for helloWorldTool
+      abilityPolicyParameterTypes: [
+        // [], // No policy parameter types for helloWorldAbility
         [PARAMETER_TYPE.UINT256, PARAMETER_TYPE.UINT256], // uint256 types for maxSends and timeWindowSeconds
       ],
-      toolPolicyParameterValues: [
-        // [], // No policy parameter values for helloWorldTool
+      abilityPolicyParameterValues: [
+        // [], // No policy parameter values for helloWorldAbility
         ["2", "10"], // maxSends: 2, timeWindowSeconds: 10
       ],
     },
@@ -74,8 +74,8 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
     // Debugging options
     {
       cidToNameMap: {
-        // [helloWorldTool.ipfsCid]: "Hello World Tool",
-        [nativeSendTool.ipfsCid]: "Native Send Tool",
+        // [helloWorldAbility.ipfsCid]: "Hello World Ability",
+        [nativeSendAbility.ipfsCid]: "Native Send Ability",
         [sendLimitPolicyMetadata.ipfsCid]: "Send Limit Policy",
       },
       debug: true,
@@ -83,13 +83,13 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
   );
 
   /**
-   * Collect all IPFS CIDs for tools and policies that need to be:
+   * Collect all IPFS CIDs for abilities and policies that need to be:
    * 1. Authorised during agent wallet PKP minting
    * 2. Permitted as authentication methods for the PKP
    */
-  const toolAndPolicyIpfsCids = [
-    // helloWorldTool.ipfsCid,
-    nativeSendTool.ipfsCid,
+  const abilityAndPolicyIpfsCids = [
+    // helloWorldAbility.ipfsCid,
+    nativeSendAbility.ipfsCid,
     sendLimitPolicyMetadata.ipfsCid,
   ];
 
@@ -99,7 +99,7 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
    * ====================================
    */
   const agentWalletPkp = await accounts.agentWalletPkpOwner.mintAgentWalletPkp({
-    toolAndPolicyIpfsCids: toolAndPolicyIpfsCids,
+    abilityAndPolicyIpfsCids: abilityAndPolicyIpfsCids,
   });
 
   console.log("🤖 Agent Wallet PKP:", agentWalletPkp);
@@ -110,10 +110,10 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
    * ====================================
    */
   const { appId, appVersion } = await accounts.appManager.registerApp({
-    toolIpfsCids: appConfig.TOOL_IPFS_CIDS,
-    toolPolicies: appConfig.TOOL_POLICIES,
-    toolPolicyParameterNames: appConfig.TOOL_POLICY_PARAMETER_NAMES,
-    toolPolicyParameterTypes: appConfig.TOOL_POLICY_PARAMETER_TYPES,
+    abilityIpfsCids: appConfig.ABILITY_IPFS_CIDS,
+    abilityPolicies: appConfig.ABILITY_POLICIES,
+    abilityPolicyParameterNames: appConfig.ABILITY_POLICY_PARAMETER_NAMES,
+    abilityPolicyParameterTypes: appConfig.ABILITY_POLICY_PARAMETER_TYPES,
   });
 
   console.log("✅ Vincent app registered:", { appId, appVersion });
@@ -127,11 +127,11 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
     pkpTokenId: agentWalletPkp.tokenId,
     appId,
     appVersion,
-    toolIpfsCids: appConfig.TOOL_IPFS_CIDS,
-    policyIpfsCids: appConfig.TOOL_POLICIES,
-    policyParameterNames: appConfig.TOOL_POLICY_PARAMETER_NAMES,
-    policyParameterValues: appConfig.TOOL_POLICY_PARAMETER_VALUES,
-    policyParameterTypes: appConfig.TOOL_POLICY_PARAMETER_TYPES,
+    abilityIpfsCids: appConfig.ABILITY_IPFS_CIDS,
+    policyIpfsCids: appConfig.ABILITY_POLICIES,
+    policyParameterNames: appConfig.ABILITY_POLICY_PARAMETER_NAMES,
+    policyParameterValues: appConfig.ABILITY_POLICY_PARAMETER_VALUES,
+    policyParameterTypes: appConfig.ABILITY_POLICY_PARAMETER_TYPES,
   });
 
   console.log("✅ PKP permitted to use app version");
@@ -144,7 +144,7 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
   const permittedAuthMethodsTxHashes =
     await accounts.agentWalletPkpOwner.permittedAuthMethods({
       agentWalletPkp: agentWalletPkp,
-      toolAndPolicyIpfsCids: toolAndPolicyIpfsCids,
+      abilityAndPolicyIpfsCids: abilityAndPolicyIpfsCids,
     });
 
   console.log(
@@ -157,17 +157,17 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
    * 🦹‍♀️ (App Manager Account) Validate delegatee permissions
    * ====================================
    */
-  const validation = await accounts.appManager.validateToolExecution({
+  const validation = await accounts.appManager.validateAbilityExecution({
     delegateeAddress: accounts.delegatee.ethersWallet.address,
     pkpTokenId: agentWalletPkp.tokenId,
-    toolIpfsCid: nativeSendTool.ipfsCid,
+    abilityIpfsCid: nativeSendAbility.ipfsCid,
   });
 
-  console.log("✅ Tool execution validation:", validation);
+  console.log("✅ Ability execution validation:", validation);
 
   if (!validation.isPermitted) {
     throw new Error(
-      `❌ Delegatee is not permitted to execute tool for PKP. Validation: ${JSON.stringify(
+      `❌ Delegatee is not permitted to execute ability for PKP. Validation: ${JSON.stringify(
         validation
       )}`
     );
@@ -175,13 +175,13 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
 
   /**
    * ====================================
-   * Test your tools and policies here
+   * Test your abilities and policies here
    * ====================================
    *
-   * This section is where you validate that your custom tools and policies
+   * This section is where you validate that your custom abilities and policies
    * work together as expected.
    *
-   * Replace this example with tests relevant to your tools and policies.
+   * Replace this example with tests relevant to your abilities and policies.
    * ====================================
    */
   console.log("🧪 Testing send limit policy");
@@ -189,20 +189,20 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
   // Array to collect transaction hashes from successful executions
   const transactionHashes: string[] = [];
 
-  const TEST_TOOL_PARAMS = {
+  const TEST_ABILITY_PARAMS = {
     to: accounts.delegatee.ethersWallet.address,
     amount: "0.00001",
     rpcUrl: "https://yellowstone-rpc.litprotocol.com/",
   };
 
   const precheck = async () => {
-    return await nativeSendToolClient.precheck(TEST_TOOL_PARAMS, {
+    return await nativeSendAbilityClient.precheck(TEST_ABILITY_PARAMS, {
       delegatorPkpEthAddress: agentWalletPkp.ethAddress,
     });
   };
 
   const execute = async () => {
-    return await nativeSendToolClient.execute(TEST_TOOL_PARAMS, {
+    return await nativeSendAbilityClient.execute(TEST_ABILITY_PARAMS, {
       delegatorPkpEthAddress: agentWalletPkp.ethAddress,
     });
   };
@@ -286,7 +286,7 @@ import { bundledVincentTool as nativeSendTool } from "../../vincent-packages/too
 
   if (nativeSendPrecheckRes3.success) {
     console.log(
-      "✅ (PRECHECK-TEST-3) Third precheck succeeded (expected - precheck only validates tool parameters)"
+      "✅ (PRECHECK-TEST-3) Third precheck succeeded (expected - precheck only validates ability parameters)"
     );
 
     // Test if execution is properly blocked by policy

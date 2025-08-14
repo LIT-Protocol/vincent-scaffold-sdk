@@ -1,7 +1,7 @@
 {
   "name": "{{packageName}}",
   "version": "0.0.1",
-  "description": "A Vincent tool created with @lit-protocol/vincent-scaffold-sdk",
+  "description": "A Vincent ability created with @lit-protocol/vincent-scaffold-sdk",
   "main": "dist/src/index.js",
   "module": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@lit-protocol/vincent-scaffold-sdk": "^1.1.8",
-    "@lit-protocol/vincent-tool-sdk": "^1.0.1"
+    "@lit-protocol/vincent-app-sdk": "^2.0.0"
   },
   "exports": {
     ".": {

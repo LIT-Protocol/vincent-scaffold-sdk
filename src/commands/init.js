@@ -12,9 +12,9 @@ const {
   validateTemplateType,
 } = require("../template-loader");
 
-// Default names for initial tool and policy
-const DEFAULT_TOOL_NAME = "native-send";
-const DEFAULT_TOOL_CAMEL_CASE_NAME = "nativeSend";
+// Default names for initial ability and policy
+const DEFAULT_ABILITY_NAME = "native-send";
+const DEFAULT_ABILITY_CAMEL_CASE_NAME = "nativeSend";
 
 const DEFAULT_POLICY_NAME = "send-counter-limit";
 const DEFAULT_POLICY_CAMEL_CASE_NAME = "sendCounterLimit";
@@ -37,13 +37,13 @@ const PACKAGES_CONFIG = {
 
 // AI Rules configuration - files to create/update during init
 const AI_RULES_CONFIG = {
-  "AGENTS.md": { 
+  "AGENTS.md": {
     description: "General AI agents guidance",
-    sourcePath: path.join(__dirname, "..", "ai-rules", "AGENTS.md")
+    sourcePath: path.join(__dirname, "..", "ai-rules", "AGENTS.md"),
   },
   "CLAUDE.md": {
-    description: "Claude Code specific guidance", 
-    sourcePath: path.join(__dirname, "..", "ai-rules", "CLAUDE.md")
+    description: "Claude Code specific guidance",
+    sourcePath: path.join(__dirname, "..", "ai-rules", "CLAUDE.md"),
   },
   // "GEMINI.md": {
   //   description: "Google Gemini specific guidance",
@@ -59,7 +59,7 @@ const AI_RULES_CONFIG = {
   //   sourcePath: path.join(__dirname, "..", "ai-rules", ".cursor", "rules")
   // },
   // ".windsurfrules": {
-  //   description: "Windsurf IDE guidance", 
+  //   description: "Windsurf IDE guidance",
   //   sourcePath: path.join(__dirname, "..", "ai-rules", ".windsurfrules")
   // },
   // ".clinerules": {
@@ -72,7 +72,7 @@ const AI_RULES_CONFIG = {
   //   sourcePath: path.join(__dirname, "..", "ai-rules", ".github", "copilot-instructions.md")
   // },
   // ".bolt/prompt": {
-  //   description: "Bolt AI guidance", 
+  //   description: "Bolt AI guidance",
   //   directory: ".bolt",
   //   sourcePath: path.join(__dirname, "..", "ai-rules", ".bolt", "prompt")
   // },
@@ -81,9 +81,14 @@ const AI_RULES_CONFIG = {
   //   sourcePath: path.join(__dirname, "..", "ai-rules", ".rules")
   // },
   "erc-20-feature-request.md": {
-    description: "ERC-20 tool implementation example",
-    sourcePath: path.join(__dirname, "..", "ai-rules", "erc-20-feature-request.md")
-  }
+    description: "ERC-20 ability implementation example",
+    sourcePath: path.join(
+      __dirname,
+      "..",
+      "ai-rules",
+      "erc-20-feature-request.md"
+    ),
+  },
 };
 
 // Scripts configuration - complete scripts object that can be rendered
@@ -246,49 +251,58 @@ function createOrUpdateGitignore() {
  */
 function createOrUpdateAIRules() {
   console.log(chalk.cyan("\n🤖 Setting up AI development guidance files..."));
-  
+
   let filesCreated = 0;
   let filesUpdated = 0;
-  
+
   for (const [targetFile, config] of Object.entries(AI_RULES_CONFIG)) {
     try {
       const targetPath = path.resolve(targetFile);
       const targetDir = path.dirname(targetPath);
-      
+
       // Create directory if needed
       if (config.directory || targetDir !== process.cwd()) {
         if (!fs.existsSync(targetDir)) {
           fs.mkdirSync(targetDir, { recursive: true });
         }
       }
-      
+
       // Check if source file exists
       if (!fs.existsSync(config.sourcePath)) {
-        console.log(chalk.yellow(`⚠️  Warning: Source file not found: ${config.sourcePath}`));
+        console.log(
+          chalk.yellow(
+            `⚠️  Warning: Source file not found: ${config.sourcePath}`
+          )
+        );
         continue;
       }
-      
+
       // Read source content
-      const sourceContent = fs.readFileSync(config.sourcePath, 'utf8');
-      
+      const sourceContent = fs.readFileSync(config.sourcePath, "utf8");
+
       if (fs.existsSync(targetPath)) {
         // File exists - check if we should update
-        const existingContent = fs.readFileSync(targetPath, 'utf8');
-        
-        if (existingContent.includes('# Vincent Scaffold SDK') || 
-            existingContent.includes('Vincent Framework') ||
-            existingContent.includes('Vincent Scaffold SDK')) {
+        const existingContent = fs.readFileSync(targetPath, "utf8");
+
+        if (
+          existingContent.includes("# Vincent Scaffold SDK") ||
+          existingContent.includes("Vincent Framework") ||
+          existingContent.includes("Vincent Scaffold SDK")
+        ) {
           // Appears to be a Vincent-generated file, update it
           fs.writeFileSync(targetPath, sourceContent);
           filesUpdated++;
           console.log(chalk.yellow(`📝 Updated ${targetFile}`));
         } else {
           // User-created file, append Vincent section
-          const separator = '\n\n# ========================================\n# Vincent Scaffold SDK - AI Guidance\n# ========================================\n\n';
+          const separator =
+            "\n\n# ========================================\n# Vincent Scaffold SDK - AI Guidance\n# ========================================\n\n";
           const updatedContent = existingContent + separator + sourceContent;
           fs.writeFileSync(targetPath, updatedContent);
           filesUpdated++;
-          console.log(chalk.yellow(`📝 Appended Vincent guidance to ${targetFile}`));
+          console.log(
+            chalk.yellow(`📝 Appended Vincent guidance to ${targetFile}`)
+          );
         }
       } else {
         // File doesn't exist - create it
@@ -296,13 +310,20 @@ function createOrUpdateAIRules() {
         filesCreated++;
         console.log(chalk.green(`✅ Created ${targetFile}`));
       }
-      
     } catch (error) {
-      console.log(chalk.yellow(`⚠️  Warning: Could not process ${targetFile}: ${error.message}`));
+      console.log(
+        chalk.yellow(
+          `⚠️  Warning: Could not process ${targetFile}: ${error.message}`
+        )
+      );
     }
   }
-  
-  console.log(chalk.green(`✅ AI guidance setup complete: ${filesCreated} created, ${filesUpdated} updated`));
+
+  console.log(
+    chalk.green(
+      `✅ AI guidance setup complete: ${filesCreated} created, ${filesUpdated} updated`
+    )
+  );
 }
 
 /**
@@ -323,7 +344,7 @@ function createOrUpdatePackageJson(e2eDirectory = "./vincent-e2e") {
       packageJson = {
         name: "vincent-project",
         version: "1.0.0",
-        description: "Vincent project with tools and policies",
+        description: "Vincent project with abilities and policies",
         private: true,
       };
       console.log(chalk.cyan("📦 Creating package.json..."));
@@ -401,9 +422,9 @@ async function promptForInit() {
     },
     // {
     //   type: "input",
-    //   name: "toolPrefix",
-    //   message: "Tool package prefix:",
-    //   default: "vincent-tool-",
+    //   name: "abilityPrefix",
+    //   message: "Ability package prefix:",
+    //   default: "vincent-ability-",
     // },
     // {
     //   type: "input",
@@ -413,9 +434,9 @@ async function promptForInit() {
     // },
     // {
     //   type: "input",
-    //   name: "toolsDirectory",
-    //   message: "Tools directory:",
-    //   default: "./vincent-packages/tools",
+    //   name: "abilitiesDirectory",
+    //   message: "Abilities directory:",
+    //   default: "./vincent-packages/abilities",
     // },
     // {
     //   type: "input",
@@ -439,9 +460,9 @@ async function promptForInit() {
   ]);
 
   // Add hardcoded defaults for commented out prompts
-  answers.toolPrefix = "vincent-tool-";
+  answers.abilityPrefix = "vincent-ability-";
   answers.policyPrefix = "vincent-policy-";
-  answers.toolsDirectory = "./vincent-packages/tools";
+  answers.abilitiesDirectory = "./vincent-packages/abilities";
   answers.policiesDirectory = "./vincent-packages/policies";
   answers.e2eDirectory = "./vincent-e2e";
 
@@ -510,7 +531,7 @@ async function initProject() {
     ]);
 
     if (!shouldOverwrite.overwrite) {
-    console.log(chalk.yellow("\n👋 Initialization cancelled"));
+      console.log(chalk.yellow("\n👋 Initialization cancelled"));
       return;
     }
   }
@@ -521,13 +542,15 @@ async function initProject() {
   createVincentConfig(config);
 
   // Create directories
-  const toolsDir = path.resolve(config.toolsDirectory);
+  const abilitiesDir = path.resolve(config.abilitiesDirectory);
   const policiesDir = path.resolve(config.policiesDirectory);
 
-  if (!fs.existsSync(toolsDir)) {
-    fs.mkdirSync(toolsDir, { recursive: true });
+  if (!fs.existsSync(abilitiesDir)) {
+    fs.mkdirSync(abilitiesDir, { recursive: true });
     console.log(
-      chalk.green(`✅ Created tools directory: ${config.toolsDirectory}`)
+      chalk.green(
+        `✅ Created abilities directory: ${config.abilitiesDirectory}`
+      )
     );
   }
 
@@ -541,36 +564,38 @@ async function initProject() {
   // Always create .env.vincent-sample
   createEnvSample();
 
-  // Create default tool and policy examples
+  // Create default ability and policy examples
   console.log(chalk.cyan("\n📦 Creating default examples..."));
 
   try {
-    // Create default tool
-    const defaultToolDir = path.resolve(
-      config.toolsDirectory,
-      DEFAULT_TOOL_NAME
+    // Create default ability
+    const defaultAbilityDir = path.resolve(
+      config.abilitiesDirectory,
+      DEFAULT_ABILITY_NAME
     );
-    if (!fs.existsSync(defaultToolDir)) {
+    if (!fs.existsSync(defaultAbilityDir)) {
       const vincentConfig = JSON.parse(
         fs.readFileSync(path.resolve("vincent.json"), "utf8")
       );
-      const toolPrefix = vincentConfig.package.toolPrefix;
-      const toolPackageName = `${vincentConfig.package.namespace}/${toolPrefix}${DEFAULT_TOOL_NAME}`;
+      const abilityPrefix = vincentConfig.package.abilityPrefix;
+      const abilityPackageName = `${vincentConfig.package.namespace}/${abilityPrefix}${DEFAULT_ABILITY_NAME}`;
 
       const policyPrefix = vincentConfig.package.policyPrefix;
       const policyPackageName = `${vincentConfig.package.namespace}/${policyPrefix}${DEFAULT_POLICY_NAME}`;
 
-      const toolVariables = {
-        name: DEFAULT_TOOL_NAME,
-        type: "tool",
+      const abilityVariables = {
+        name: DEFAULT_ABILITY_NAME,
+        type: "ability",
         namespace: vincentConfig.package.namespace,
-        packageName: toolPackageName,
-        camelCaseName: DEFAULT_TOOL_CAMEL_CASE_NAME,
+        packageName: abilityPackageName,
+        camelCaseName: DEFAULT_ABILITY_CAMEL_CASE_NAME,
         policyPackageName: policyPackageName,
       };
 
-      createProjectFromTemplate("tool", defaultToolDir, toolVariables);
-      console.log(chalk.green(`✅ Created default tool: ${toolPackageName}`));
+      createProjectFromTemplate("ability", defaultAbilityDir, abilityVariables);
+      console.log(
+        chalk.green(`✅ Created default ability: ${abilityPackageName}`)
+      );
     }
 
     // Create default policy
@@ -624,7 +649,7 @@ async function initProject() {
   console.log(chalk.cyan("\n🎉 Vincent development environment initialised!"));
   console.log(chalk.gray("Default examples created:"));
   console.log(
-    chalk.gray(`• ${DEFAULT_TOOL_NAME} tool - A simple greeting tool`)
+    chalk.gray(`• ${DEFAULT_ABILITY_NAME} ability - A simple greeting ability`)
   );
   console.log(
     chalk.gray(`• ${DEFAULT_POLICY_NAME} policy - Limits daily greetings`)
@@ -647,7 +672,9 @@ async function initProject() {
     chalk.gray("4. Run npm run vincent:e2e to test your Vincent projects")
   );
   console.log(
-    chalk.gray(`YOLO. Run "npm install && npm run vincent:build && npm run vincent:e2e"`)
+    chalk.gray(
+      `YOLO. Run "npm install && npm run vincent:build && npm run vincent:e2e"`
+    )
   );
   process.exit();
 }
@@ -687,9 +714,7 @@ async function suggestInit() {
         "\n💡 Navigate to your desired project directory and run the command again."
       )
     );
-    console.log(
-      chalk.gray("   Example: cd /path/to/my-vincent-project")
-    );
+    console.log(chalk.gray("   Example: cd /path/to/my-vincent-project"));
     process.exit(0);
   }
 

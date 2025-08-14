@@ -1,6 +1,6 @@
 # {{name}}
 
-A Vincent tool created with @lit-protocol/vincent-scaffold-sdk.
+A Vincent ability created with @lit-protocol/vincent-scaffold-sdk.
 
 ## Getting Started
 
@@ -17,4 +17,4 @@ npm run build
 
 ## Documentation
 
-Add documentation for your tool here.
+Add documentation for your ability here.

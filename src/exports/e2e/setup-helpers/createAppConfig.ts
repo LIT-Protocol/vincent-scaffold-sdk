@@ -14,11 +14,11 @@ function getParameterTypeName(value: ParameterType): string {
  */
 export function createAppConfig<const T extends readonly string[]>(
   config: {
-    toolIpfsCids: T;
-    toolPolicies: { readonly [K in keyof T]: string[] };
-    toolPolicyParameterNames: { readonly [K in keyof T]: string[] };
-    toolPolicyParameterTypes: { readonly [K in keyof T]: ParameterType[] };
-    toolPolicyParameterValues: { readonly [K in keyof T]: string[] };
+    abilityIpfsCids: T;
+    abilityPolicies: { readonly [K in keyof T]: string[] };
+    abilityPolicyParameterNames: { readonly [K in keyof T]: string[] };
+    abilityPolicyParameterTypes: { readonly [K in keyof T]: ParameterType[] };
+    abilityPolicyParameterValues: { readonly [K in keyof T]: string[] };
   },
   {
     debug = false,
@@ -26,15 +26,15 @@ export function createAppConfig<const T extends readonly string[]>(
   }: { debug?: boolean; cidToNameMap?: Record<string, string> } = {}
 ) {
   const appConfig = {
-    TOOL_IPFS_CIDS: [...config.toolIpfsCids],
-    TOOL_POLICIES: config.toolPolicies.map((policies) => [...policies]),
-    TOOL_POLICY_PARAMETER_NAMES: config.toolPolicyParameterNames.map(
+    ABILITY_IPFS_CIDS: [...config.abilityIpfsCids],
+    ABILITY_POLICIES: config.abilityPolicies.map((policies) => [...policies]),
+    ABILITY_POLICY_PARAMETER_NAMES: config.abilityPolicyParameterNames.map(
       (names) => [...names]
     ),
-    TOOL_POLICY_PARAMETER_TYPES: config.toolPolicyParameterTypes.map(
+    ABILITY_POLICY_PARAMETER_TYPES: config.abilityPolicyParameterTypes.map(
       (types) => [...types]
     ),
-    TOOL_POLICY_PARAMETER_VALUES: config.toolPolicyParameterValues.map(
+    ABILITY_POLICY_PARAMETER_VALUES: config.abilityPolicyParameterValues.map(
       (values) => [...values]
     ),
   };
@@ -43,14 +43,14 @@ export function createAppConfig<const T extends readonly string[]>(
     console.log("🔍 Debug Configuration Summary:");
     console.log("────────────────────────────────────────");
 
-    config.toolIpfsCids.forEach((cid, index) => {
-      const toolName = cidToNameMap?.[cid] || `Unknown Tool`;
+    config.abilityIpfsCids.forEach((cid, index) => {
+      const abilityName = cidToNameMap?.[cid] || `Unknown Ability`;
       const shortCid = cid.slice(0, 8);
 
-      console.log(`\n📦 Tool ${index + 1}: ${toolName} (${shortCid}...)`);
+      console.log(`\n📦 Ability ${index + 1}: ${abilityName} (${shortCid}...)`);
 
       // Show policies
-      const policies = config.toolPolicies[index];
+      const policies = config.abilityPolicies[index];
       if (policies.length === 0) {
         console.log(`   🛡️  Policies: None`);
       } else {
@@ -63,14 +63,14 @@ export function createAppConfig<const T extends readonly string[]>(
       }
 
       // Show parameters
-      const paramNames = config.toolPolicyParameterNames[index];
+      const paramNames = config.abilityPolicyParameterNames[index];
       if (paramNames.length === 0) {
         console.log(`   ⚙️  Parameters: None`);
       } else {
         console.log(`   ⚙️  Parameters:`);
         paramNames.forEach((name, paramIndex) => {
-          const type = config.toolPolicyParameterTypes[index][paramIndex];
-          const value = config.toolPolicyParameterValues[index][paramIndex];
+          const type = config.abilityPolicyParameterTypes[index][paramIndex];
+          const value = config.abilityPolicyParameterValues[index][paramIndex];
           const typeName = getParameterTypeName(type);
           console.log(`      • ${name}: ${value} (${typeName})`);
         });

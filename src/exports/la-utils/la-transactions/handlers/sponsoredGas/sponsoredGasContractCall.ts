@@ -166,7 +166,7 @@ export const sponsoredGasContractCall = async ({
         );
 
         console.log(
-          `[@lit-protocol/vincent-tool-morpho/executeOperationWithGasSponsorship] User operation sent`,
+          `[@lit-protocol/vincent-ability-morpho/executeOperationWithGasSponsorship] User operation sent`,
           { userOpHash: userOpResult }
         );
 

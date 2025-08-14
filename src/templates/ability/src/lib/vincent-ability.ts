@@ -1,9 +1,9 @@
 import {
-  createVincentTool,
-  createVincentToolPolicy,
-  supportedPoliciesForTool,
-} from "@lit-protocol/vincent-tool-sdk";
-import "@lit-protocol/vincent-tool-sdk/internal";
+  createVincentAbility,
+  createVincentAbilityPolicy,
+  supportedPoliciesForAbility,
+} from "@lit-protocol/vincent-app-sdk";
+import "@lit-protocol/vincent-app-sdk/internal";
 import { bundledVincentPolicy } from "../../../../policies/send-counter-limit/dist/index.js";
 
 import {
@@ -11,24 +11,24 @@ import {
   executeSuccessSchema,
   precheckFailSchema,
   precheckSuccessSchema,
-  toolParamsSchema,
-} from "./schemas";
+  abilityParamsSchema,
+} from "./schemas.js";
 
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk";
 
-const SendLimitPolicy = createVincentToolPolicy({
-  toolParamsSchema,
+const SendLimitPolicy = createVincentAbilityPolicy({
+  abilityParamsSchema,
   bundledVincentPolicy,
-  toolParameterMappings: {
+  abilityParameterMappings: {
     to: "to",
     amount: "amount",
   },
 });
 
-export const vincentTool = createVincentTool({
+export const vincentAbility = createVincentAbility({
   packageName: "{{packageName}}" as const,
-  toolParamsSchema,
-  supportedPolicies: supportedPoliciesForTool([SendLimitPolicy]),
+  abilityParamsSchema,
+  supportedPolicies: supportedPoliciesForAbility([SendLimitPolicy]),
 
   precheckSuccessSchema,
   precheckFailSchema,
@@ -36,13 +36,13 @@ export const vincentTool = createVincentTool({
   executeSuccessSchema,
   executeFailSchema,
 
-  precheck: async ({ toolParams }, { succeed, fail }) => {
+  precheck: async ({ abilityParams }, { succeed, fail }) => {
     console.log("[{{packageName}}/precheck]");
     console.log("[{{packageName}}/precheck] params:", {
-      toolParams,
+      abilityParams,
     });
 
-    const { to, amount, rpcUrl } = toolParams;
+    const { to, amount, rpcUrl } = abilityParams;
 
     // Basic validation without using ethers directly
     if (!to || !to.startsWith("0x") || to.length !== 42) {
@@ -88,20 +88,20 @@ export const vincentTool = createVincentTool({
     console.log("[{{packageName}}/precheck] Success result:", successResult);
     const successResponse = succeed(successResult);
     console.log(
-      "[NativeSendTool/precheck] Success response:",
+      "[NativeSendAbility/precheck] Success response:",
       JSON.stringify(successResponse, null, 2)
     );
     return successResponse;
   },
 
   execute: async (
-    { toolParams },
+    { abilityParams },
     { succeed, fail, delegation, policiesContext }
   ) => {
     try {
-      const { to, amount, rpcUrl } = toolParams;
+      const { to, amount, rpcUrl } = abilityParams;
 
-      console.log("[{{packageName}}/execute] Executing Native Send Tool", {
+      console.log("[{{packageName}}/execute] Executing Native Send Ability", {
         to,
         amount,
         rpcUrl,

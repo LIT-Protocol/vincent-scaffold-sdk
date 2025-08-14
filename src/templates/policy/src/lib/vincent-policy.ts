@@ -1,4 +1,4 @@
-import { createVincentPolicy } from "@lit-protocol/vincent-tool-sdk";
+import { createVincentPolicy } from "@lit-protocol/vincent-app-sdk";
 import { checkSendLimit, resetSendCounter } from "./helpers/index";
 import {
   commitAllowResultSchema,
@@ -8,7 +8,7 @@ import {
   evalDenyResultSchema,
   precheckAllowResultSchema,
   precheckDenyResultSchema,
-  toolParamsSchema,
+  abilityParamsSchema,
   userParamsSchema,
 } from "./schemas";
 import { counterSignatures } from "./abi/counterSignatures";
@@ -17,7 +17,7 @@ import { laUtils } from "@lit-protocol/vincent-scaffold-sdk";
 export const vincentPolicy = createVincentPolicy({
   packageName: "{{packageName}}" as const,
 
-  toolParamsSchema,
+  abilityParamsSchema,
   userParamsSchema,
   commitParamsSchema,
 
@@ -31,12 +31,12 @@ export const vincentPolicy = createVincentPolicy({
   commitDenyResultSchema,
 
   precheck: async (
-    { toolParams, userParams },
+    { abilityParams, userParams },
     { allow, deny, appId, delegation: { delegatorPkpInfo } }
   ) => {
     console.log("[{{packageName}}/precheck] 🔍 POLICY PRECHECK CALLED");
     console.log("[{{packageName}}/precheck] 🔍 Policy precheck params:", {
-      toolParams,
+      abilityParams,
       userParams,
       ethAddress: delegatorPkpInfo.ethAddress,
       appId,
@@ -62,9 +62,8 @@ export const vincentPolicy = createVincentPolicy({
         const denyResult = {
           reason: `Send limit exceeded. Maximum ${Number(
             maxSends
-          )} sends per ${Number(timeWindowSeconds)} seconds. Try again in ${
-            limitCheck.secondsUntilReset
-          } seconds.`,
+          )} sends per ${Number(timeWindowSeconds)} seconds. Try again in ${limitCheck.secondsUntilReset
+            } seconds.`,
           currentCount: limitCheck.currentCount,
           maxSends: Number(maxSends),
           secondsUntilReset: limitCheck.secondsUntilReset || 0,
@@ -134,9 +133,8 @@ export const vincentPolicy = createVincentPolicy({
     } catch (error) {
       console.error("[SendLimitPolicy/precheck] Error in precheck:", error);
       return deny({
-        reason: `Policy error: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
+        reason: `Policy error: ${error instanceof Error ? error.message : "Unknown error"
+          }`,
         currentCount: 0,
         maxSends: Number(maxSends),
         secondsUntilReset: 0,
@@ -145,11 +143,11 @@ export const vincentPolicy = createVincentPolicy({
   },
 
   evaluate: async (
-    { toolParams, userParams },
+    { abilityParams, userParams },
     { allow, deny, appId, delegation: { delegatorPkpInfo } }
   ) => {
     console.log("[{{packageName}}/evaluate] Evaluating send limit policy", {
-      toolParams,
+      abilityParams,
       userParams,
     });
 
@@ -268,8 +266,8 @@ export const vincentPolicy = createVincentPolicy({
       );
 
       const provider = new ethers.providers.JsonRpcProvider(
-  "https://yellowstone-rpc.litprotocol.com/"
-);
+        "https://yellowstone-rpc.litprotocol.com/"
+      );
 
       // Call contract directly without Lit.Actions.runOnce wrapper
       const txHash = await laUtils.transaction.handler.contractCall({

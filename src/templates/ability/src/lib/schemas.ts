@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 /**
- * Tool parameters schema - defines the input parameters for the native send tool
+ * Ability parameters schema - defines the input parameters for the native send ability
  */
-export const toolParamsSchema = z.object({
+export const abilityParamsSchema = z.object({
   to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
   amount: z
     .string()
@@ -46,7 +46,7 @@ export const executeFailSchema = z.object({
 });
 
 // Type exports
-export type ToolParams = z.infer<typeof toolParamsSchema>;
+export type AbilityParams = z.infer<typeof abilityParamsSchema>;
 export type PrecheckSuccess = z.infer<typeof precheckSuccessSchema>;
 export type PrecheckFail = z.infer<typeof precheckFailSchema>;
 export type ExecuteSuccess = z.infer<typeof executeSuccessSchema>;

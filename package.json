@@ -67,9 +67,9 @@
   "keywords": [
     "vincent",
     "esbuild",
-    "build-tools",
+    "build-abilities",
     "lit-protocol",
-    "vincent-tool",
+    "vincent-ability",
     "vincent-policy"
   ],
   "author": "",
@@ -94,8 +94,7 @@
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
-    "@lit-protocol/vincent-app-sdk": "*",
-    "@lit-protocol/vincent-tool-sdk": "*"
+    "@lit-protocol/vincent-app-sdk": "*"
   },
   "engines": {
     "node": ">=16.0.0"

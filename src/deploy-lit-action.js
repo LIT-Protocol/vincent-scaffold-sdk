@@ -11,7 +11,7 @@ require("dotenv").config();
  * @param {string} [options.pinataJwt] - Pinata JWT token (defaults to process.env.PINATA_JWT)
  * @param {string} [options.outputFile] - Output filename (defaults to 'lit-action.js')
  * @param {string} [options.generatedDir] - Generated directory path (defaults to '../src/generated')
- * @param {string} [options.projectType] - Project type ('tool' or 'policy') to determine metadata filename
+ * @param {string} [options.projectType] - Project type ('ability' or 'policy') to determine metadata filename
  * @returns {Promise<string>} Promise that resolves to the IPFS CID
  */
 async function deployLitAction(options = {}) {
@@ -19,7 +19,7 @@ async function deployLitAction(options = {}) {
     pinataJwt = process.env.PINATA_JWT,
     outputFile = "lit-action.js",
     generatedDir = path.join(__dirname, "../src/generated"),
-    projectType = "tool",
+    projectType = "ability",
   } = options;
 
   // Validate Pinata JWT
@@ -33,7 +33,7 @@ async function deployLitAction(options = {}) {
     const filePath = path.join(generatedDir, outputFile);
     if (!fs.existsSync(filePath)) {
       throw new Error(
-        `❌ Bundled Lit Action code string not found at ${filePath}. Please run pnpx nx run vincent-tool-erc20-approval:action:build first.`
+        `❌ Bundled Lit Action code string not found at ${filePath}. Please run pnpx nx run vincent-ability-erc20-approval:action:build first.`
       );
     }
     // Import ES module dynamically
@@ -49,7 +49,7 @@ async function deployLitAction(options = {}) {
     const metadataFilename =
       projectType === "policy"
         ? "vincent-policy-metadata.json"
-        : "vincent-tool-metadata.json";
+        : "vincent-ability-metadata.json";
     const cidJsonPath = path.join(generatedDir, metadataFilename);
 
     const metadata = fs.readFileSync(cidJsonPath);

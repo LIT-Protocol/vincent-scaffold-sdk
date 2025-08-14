@@ -1,3 +1,6 @@
-export function generateLitAction(type: 'tool' | 'policy', outputDir?: string): void;
-export function generateToolLitAction(): string;
+export function generateLitAction(
+    type: "ability" | "policy",
+    outputDir?: string
+): void;
+export function generateAbilityLitAction(): string;
 export function generatePolicyLitAction(): string;

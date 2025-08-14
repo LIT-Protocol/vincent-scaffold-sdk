@@ -29,11 +29,11 @@ interface VincentAppState {
   createdAt: string;
   network: string;
   delegateeAddress: string;
-  toolIpfsCids: string[];
-  toolPolicies: string[][];
-  toolPolicyParameterNames: string[][];
-  toolPolicyParameterTypes: number[][];
-  toolPolicyParameterValues?: string[][]; // Optional for backward compatibility
+  abilityIpfsCids: string[];
+  abilityPolicies: string[][];
+  abilityPolicyParameterNames: string[][];
+  abilityPolicyParameterTypes: number[][];
+  abilityPolicyParameterValues?: string[][]; // Optional for backward compatibility
 }
 
 interface PKPAppPermissionState {
@@ -46,8 +46,8 @@ interface PKPAppPermissionState {
 
 interface ConfigurationState {
   configHash: string;
-  toolIpfsCids: string[];
-  toolPolicyCids: string[][];
+  abilityIpfsCids: string[];
+  abilityPolicyCids: string[][];
   lastUsed: string;
   network: string;
   state: {
@@ -59,8 +59,8 @@ interface ConfigurationState {
 interface AppVersionConfiguration {
   appId: string;
   appVersion: string;
-  toolIpfsCids: string[];
-  toolPolicyCids: string[][];
+  abilityIpfsCids: string[];
+  abilityPolicyCids: string[][];
   lastUsed: string;
   network: string;
   state: {
@@ -129,14 +129,14 @@ export class StateManager {
     private network: string,
     private testFileName: string,
     private configHash: string,
-    toolIpfsCids?: string[],
-    toolPolicyCids?: string[][]
+    abilityIpfsCids?: string[],
+    abilityPolicyCids?: string[][]
   ) {
-    // If tool/policy CIDs are provided, generate the real config hash
-    if (toolIpfsCids && toolPolicyCids) {
+    // If ability/policy CIDs are provided, generate the real config hash
+    if (abilityIpfsCids && abilityPolicyCids) {
       this.configHash = StateManager.generateConfigHash(
-        toolIpfsCids,
-        toolPolicyCids
+        abilityIpfsCids,
+        abilityPolicyCids
       );
     }
 
@@ -148,15 +148,15 @@ export class StateManager {
   }
 
   /**
-   * Generate configuration hash from tool and policy IPFS CIDs
+   * Generate configuration hash from ability and policy IPFS CIDs
    */
   static generateConfigHash(
-    toolIpfsCids: string[],
-    toolPolicyCids: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicyCids: string[][]
   ): string {
     // Combine all IPFS CIDs and create a hash
-    const flattenedPolicyCids = toolPolicyCids.flat();
-    const allCids = [...toolIpfsCids, ...flattenedPolicyCids];
+    const flattenedPolicyCids = abilityPolicyCids.flat();
+    const allCids = [...abilityIpfsCids, ...flattenedPolicyCids];
     const sortedCids = allCids.sort();
     const cidString = sortedCids.join("");
     const hash = createHash("sha256")
@@ -211,15 +211,15 @@ export class StateManager {
 
     if (
       !this.nestedState.testFiles[this.testFileName].configurations[
-        this.configHash
+      this.configHash
       ]
     ) {
       this.nestedState.testFiles[this.testFileName].configurations[
         this.configHash
       ] = {
         configHash: this.configHash,
-        toolIpfsCids: [],
-        toolPolicyCids: [],
+        abilityIpfsCids: [],
+        abilityPolicyCids: [],
         lastUsed: new Date().toISOString(),
         network: this.network,
         state: {},
@@ -232,16 +232,16 @@ export class StateManager {
   }
 
   /**
-   * Set the real configuration hash based on tool/policy CIDs
+   * Set the real configuration hash based on ability/policy CIDs
    * This should be called before any state operations when CIDs are known
    */
   setConfigurationFromCIDs(
-    toolIpfsCids: string[],
-    toolPolicyCids: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicyCids: string[][]
   ): void {
     const newConfigHash = StateManager.generateConfigHash(
-      toolIpfsCids,
-      toolPolicyCids
+      abilityIpfsCids,
+      abilityPolicyCids
     );
 
     if (newConfigHash !== this.configHash) {
@@ -259,10 +259,10 @@ export class StateManager {
       this.currentConfigState = this.getCurrentConfigState();
 
       // Update metadata
-      this.updateConfigurationMetadata(toolIpfsCids, toolPolicyCids);
+      this.updateConfigurationMetadata(abilityIpfsCids, abilityPolicyCids);
     } else {
       // Update metadata even if hash is same (for lastUsed timestamp)
-      this.updateConfigurationMetadata(toolIpfsCids, toolPolicyCids);
+      this.updateConfigurationMetadata(abilityIpfsCids, abilityPolicyCids);
     }
   }
 
@@ -270,12 +270,12 @@ export class StateManager {
    * Update configuration metadata
    */
   updateConfigurationMetadata(
-    toolIpfsCids: string[],
-    toolPolicyCids: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicyCids: string[][]
   ) {
     const configState = this.getCurrentConfigState();
-    configState.toolIpfsCids = toolIpfsCids;
-    configState.toolPolicyCids = toolPolicyCids;
+    configState.abilityIpfsCids = abilityIpfsCids;
+    configState.abilityPolicyCids = abilityPolicyCids;
     configState.lastUsed = new Date().toISOString();
   }
 
@@ -325,8 +325,8 @@ export class StateManager {
     appId: string,
     appVersion: string,
     vincentApp: VincentAppState,
-    toolIpfsCids: string[],
-    toolPolicyCids: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicyCids: string[][]
   ): void {
     const appVersionKey = StateManager.generateAppVersionKey(appId, appVersion);
 
@@ -340,8 +340,8 @@ export class StateManager {
     this.nestedState.testFiles[this.testFileName].appVersions[appVersionKey] = {
       appId,
       appVersion,
-      toolIpfsCids,
-      toolPolicyCids,
+      abilityIpfsCids,
+      abilityPolicyCids,
       lastUsed: new Date().toISOString(),
       network: this.network,
       state: {
@@ -364,21 +364,21 @@ export class StateManager {
     registerNextVersionFunction: (
       appId: string
     ) => Promise<{ appId: string; appVersion: string }>,
-    toolIpfsCids: string[],
-    toolPolicies: string[][],
-    toolPolicyParameterNames: string[][],
-    toolPolicyParameterTypes: number[][],
-    toolPolicyParameterValues?: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicies: string[][],
+    abilityPolicyParameterNames: string[][],
+    abilityPolicyParameterTypes: number[][],
+    abilityPolicyParameterValues?: string[][]
   ): Promise<{
     appId: string;
     appVersion: string;
     isNew: boolean;
     isNewVersion: boolean;
-    toolIpfsCids: string[];
-    toolPolicies: string[][];
-    toolPolicyParameterNames: string[][];
-    toolPolicyParameterTypes: number[][];
-    toolPolicyParameterValues?: string[][];
+    abilityIpfsCids: string[];
+    abilityPolicies: string[][];
+    abilityPolicyParameterNames: string[][];
+    abilityPolicyParameterTypes: number[][];
+    abilityPolicyParameterValues?: string[][];
   }> {
     // First, check if we have any existing app for this delegatee
     const existingApp = this.getExistingVincentApp(delegateeAddress);
@@ -386,11 +386,11 @@ export class StateManager {
     if (existingApp) {
       const appId = existingApp.appId;
 
-      // Check if current tools/policies match any existing app version
+      // Check if current abilities/policies match any existing app version
       const matchingAppVersion = this.findMatchingAppVersion(
         appId,
-        toolIpfsCids,
-        toolPolicies
+        abilityIpfsCids,
+        abilityPolicies
       );
 
       if (matchingAppVersion) {
@@ -404,11 +404,11 @@ export class StateManager {
           appVersion: matchingAppVersion,
           isNew: false,
           isNewVersion: false,
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames,
-          toolPolicyParameterTypes,
-          toolPolicyParameterValues,
+          abilityIpfsCids,
+          abilityPolicies,
+          abilityPolicyParameterNames,
+          abilityPolicyParameterTypes,
+          abilityPolicyParameterValues,
         };
       } else {
         // Register new version for existing app
@@ -422,11 +422,11 @@ export class StateManager {
           appId,
           appVersion,
           delegateeAddress,
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames,
-          toolPolicyParameterTypes,
-          toolPolicyParameterValues,
+          abilityIpfsCids,
+          abilityPolicies,
+          abilityPolicyParameterNames,
+          abilityPolicyParameterTypes,
+          abilityPolicyParameterValues,
           createdAt: new Date().toISOString(),
           network: this.network,
         };
@@ -435,8 +435,8 @@ export class StateManager {
           appId,
           appVersion,
           vincentApp,
-          toolIpfsCids,
-          toolPolicies
+          abilityIpfsCids,
+          abilityPolicies
         );
 
         return {
@@ -444,11 +444,11 @@ export class StateManager {
           appVersion,
           isNew: false,
           isNewVersion: true,
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames,
-          toolPolicyParameterTypes,
-          toolPolicyParameterValues,
+          abilityIpfsCids,
+          abilityPolicies,
+          abilityPolicyParameterNames,
+          abilityPolicyParameterTypes,
+          abilityPolicyParameterValues,
         };
       }
     } else {
@@ -461,11 +461,11 @@ export class StateManager {
         appId,
         appVersion,
         delegateeAddress,
-        toolIpfsCids,
-        toolPolicies,
-        toolPolicyParameterNames,
-        toolPolicyParameterTypes,
-        toolPolicyParameterValues,
+        abilityIpfsCids,
+        abilityPolicies,
+        abilityPolicyParameterNames,
+        abilityPolicyParameterTypes,
+        abilityPolicyParameterValues,
         createdAt: new Date().toISOString(),
         network: this.network,
       };
@@ -474,8 +474,8 @@ export class StateManager {
         appId,
         appVersion,
         vincentApp,
-        toolIpfsCids,
-        toolPolicies
+        abilityIpfsCids,
+        abilityPolicies
       );
 
       // Also save to current config for backward compatibility
@@ -483,11 +483,11 @@ export class StateManager {
         appId,
         appVersion,
         delegateeAddress,
-        toolIpfsCids,
-        toolPolicies,
-        toolPolicyParameterNames,
-        toolPolicyParameterTypes,
-        toolPolicyParameterValues
+        abilityIpfsCids,
+        abilityPolicies,
+        abilityPolicyParameterNames,
+        abilityPolicyParameterTypes,
+        abilityPolicyParameterValues
       );
 
       return {
@@ -495,22 +495,22 @@ export class StateManager {
         appVersion,
         isNew: true,
         isNewVersion: false,
-        toolIpfsCids,
-        toolPolicies,
-        toolPolicyParameterNames,
-        toolPolicyParameterTypes,
-        toolPolicyParameterValues,
+        abilityIpfsCids,
+        abilityPolicies,
+        abilityPolicyParameterNames,
+        abilityPolicyParameterTypes,
+        abilityPolicyParameterValues,
       };
     }
   }
 
   /**
-   * Find matching app version based on tool/policy CIDs
+   * Find matching app version based on ability/policy CIDs
    */
   private findMatchingAppVersion(
     appId: string,
-    toolIpfsCids: string[],
-    toolPolicies: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicies: string[][]
   ): string | undefined {
     if (!this.nestedState.testFiles[this.testFileName]?.appVersions) {
       return undefined;
@@ -521,15 +521,15 @@ export class StateManager {
 
     for (const [appVersionKey, config] of Object.entries(appVersions)) {
       if (config.appId === appId && config.network === this.network) {
-        // Check if tool CIDs match
-        const toolCidsMatch =
-          JSON.stringify(config.toolIpfsCids.sort()) ===
-          JSON.stringify(toolIpfsCids.sort());
+        // Check if ability CIDs match
+        const abilityCidsMatch =
+          JSON.stringify(config.abilityIpfsCids.sort()) ===
+          JSON.stringify(abilityIpfsCids.sort());
         const policyCidsMatch =
-          JSON.stringify(config.toolPolicyCids) ===
-          JSON.stringify(toolPolicies);
+          JSON.stringify(config.abilityPolicyCids) ===
+          JSON.stringify(abilityPolicies);
 
-        if (toolCidsMatch && policyCidsMatch) {
+        if (abilityCidsMatch && policyCidsMatch) {
           console.log(
             chalk.blue(`🔍 Found matching app version: ${appVersionKey}`)
           );
@@ -540,7 +540,7 @@ export class StateManager {
 
     console.log(
       chalk.yellow(
-        `🔍 No matching app version found for appId ${appId} with current tools/policies`
+        `🔍 No matching app version found for appId ${appId} with current abilities/policies`
       )
     );
     return undefined;
@@ -877,7 +877,7 @@ export class StateManager {
         mintedDate.getUTCFullYear(),
         mintedDate.getUTCMonth(),
         mintedDate.getUTCDate() +
-          capacityCreditInfo.daysUntilUTCMidnightExpiration,
+        capacityCreditInfo.daysUntilUTCMidnightExpiration,
         0,
         0,
         0,
@@ -1018,22 +1018,22 @@ export class StateManager {
     appId: string,
     appVersion: string,
     delegateeAddress: string,
-    toolIpfsCids: string[],
-    toolPolicies: string[][],
-    toolPolicyParameterNames: string[][],
-    toolPolicyParameterTypes: number[][],
-    toolPolicyParameterValues?: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicies: string[][],
+    abilityPolicyParameterNames: string[][],
+    abilityPolicyParameterTypes: number[][],
+    abilityPolicyParameterValues?: string[][]
   ): void {
     const configState = this.getCurrentConfigState();
     configState.state.vincentApp = {
       appId,
       appVersion,
       delegateeAddress,
-      toolIpfsCids,
-      toolPolicies,
-      toolPolicyParameterNames,
-      toolPolicyParameterTypes,
-      toolPolicyParameterValues,
+      abilityIpfsCids,
+      abilityPolicies,
+      abilityPolicyParameterNames,
+      abilityPolicyParameterTypes,
+      abilityPolicyParameterValues,
       createdAt: new Date().toISOString(),
       network: this.network,
     };
@@ -1053,52 +1053,52 @@ export class StateManager {
   async getOrRegisterVincentApp(
     delegateeAddress: string,
     registerFunction: () => Promise<{ appId: string; appVersion: string }>,
-    toolIpfsCids: string[],
-    toolPolicies: string[][],
-    toolPolicyParameterNames: string[][],
-    toolPolicyParameterTypes: number[][],
-    toolPolicyParameterValues?: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicies: string[][],
+    abilityPolicyParameterNames: string[][],
+    abilityPolicyParameterTypes: number[][],
+    abilityPolicyParameterValues?: string[][]
   ): Promise<{
     appId: string;
     appVersion: string;
     isNew: boolean;
-    toolIpfsCids: string[];
-    toolPolicies: string[][];
-    toolPolicyParameterNames: string[][];
-    toolPolicyParameterTypes: number[][];
-    toolPolicyParameterValues?: string[][];
+    abilityIpfsCids: string[];
+    abilityPolicies: string[][];
+    abilityPolicyParameterNames: string[][];
+    abilityPolicyParameterTypes: number[][];
+    abilityPolicyParameterValues?: string[][];
   }> {
     // Check if we have an existing Vincent app for this delegatee
     const existingApp = this.getExistingVincentApp(delegateeAddress);
     if (existingApp) {
-      // Update the current configuration with the new tool/policy information
-      // since we're reusing an existing app but with potentially different tools
+      // Update the current configuration with the new ability/policy information
+      // since we're reusing an existing app but with potentially different abilities
       const configState = this.getCurrentConfigState();
       if (configState.state.vincentApp) {
         console.log(
           chalk.blue(
-            `🔄 Updating reused app ${existingApp.appId} with current tool/policy configuration`
+            `🔄 Updating reused app ${existingApp.appId} with current ability/policy configuration`
           )
         );
-        configState.state.vincentApp.toolIpfsCids = toolIpfsCids;
-        configState.state.vincentApp.toolPolicies = toolPolicies;
-        configState.state.vincentApp.toolPolicyParameterNames =
-          toolPolicyParameterNames;
-        configState.state.vincentApp.toolPolicyParameterTypes =
-          toolPolicyParameterTypes;
-        configState.state.vincentApp.toolPolicyParameterValues =
-          toolPolicyParameterValues;
+        configState.state.vincentApp.abilityIpfsCids = abilityIpfsCids;
+        configState.state.vincentApp.abilityPolicies = abilityPolicies;
+        configState.state.vincentApp.abilityPolicyParameterNames =
+          abilityPolicyParameterNames;
+        configState.state.vincentApp.abilityPolicyParameterTypes =
+          abilityPolicyParameterTypes;
+        configState.state.vincentApp.abilityPolicyParameterValues =
+          abilityPolicyParameterValues;
       }
 
       return {
         appId: existingApp.appId,
         appVersion: existingApp.appVersion,
         isNew: false,
-        toolIpfsCids,
-        toolPolicies,
-        toolPolicyParameterNames,
-        toolPolicyParameterTypes,
-        toolPolicyParameterValues,
+        abilityIpfsCids,
+        abilityPolicies,
+        abilityPolicyParameterNames,
+        abilityPolicyParameterTypes,
+        abilityPolicyParameterValues,
       };
     }
 
@@ -1111,22 +1111,22 @@ export class StateManager {
       appId,
       appVersion,
       delegateeAddress,
-      toolIpfsCids,
-      toolPolicies,
-      toolPolicyParameterNames,
-      toolPolicyParameterTypes,
-      toolPolicyParameterValues
+      abilityIpfsCids,
+      abilityPolicies,
+      abilityPolicyParameterNames,
+      abilityPolicyParameterTypes,
+      abilityPolicyParameterValues
     );
 
     return {
       appId,
       appVersion,
       isNew: true,
-      toolIpfsCids,
-      toolPolicies,
-      toolPolicyParameterNames,
-      toolPolicyParameterTypes,
-      toolPolicyParameterValues,
+      abilityIpfsCids,
+      abilityPolicies,
+      abilityPolicyParameterNames,
+      abilityPolicyParameterTypes,
+      abilityPolicyParameterValues,
     };
   }
 
@@ -1135,15 +1135,15 @@ export class StateManager {
    */
   updateVincentAppParameterValues(
     appId: string,
-    toolPolicyParameterValues: string[][]
+    abilityPolicyParameterValues: string[][]
   ): void {
     const configState = this.getCurrentConfigState();
     if (
       configState.state.vincentApp &&
       configState.state.vincentApp.appId === appId
     ) {
-      configState.state.vincentApp.toolPolicyParameterValues =
-        toolPolicyParameterValues;
+      configState.state.vincentApp.abilityPolicyParameterValues =
+        abilityPolicyParameterValues;
       console.log(
         chalk.green(
           `💾 Updated Vincent app parameter values for config ${this.configHash}: ${appId}`

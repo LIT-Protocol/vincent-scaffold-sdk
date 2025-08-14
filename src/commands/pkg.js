@@ -26,7 +26,7 @@ async function buildCurrentPackage() {
     console.error(chalk.red("❌ Current directory is not a Vincent package"));
     console.log(
       chalk.gray(
-        "Run this command from within a Vincent tool or policy directory"
+        "Run this command from within a Vincent ability or policy directory"
       )
     );
     console.log(
@@ -57,7 +57,7 @@ async function deployCurrentPackage() {
     console.error(chalk.red("❌ Current directory is not a Vincent package"));
     console.log(
       chalk.gray(
-        "Run this command from within a Vincent tool or policy directory"
+        "Run this command from within a Vincent ability or policy directory"
       )
     );
     console.log(
@@ -90,7 +90,7 @@ async function cleanCurrentPackage() {
     console.error(chalk.red("❌ Current directory is not a Vincent package"));
     console.log(
       chalk.gray(
-        "Run this command from within a Vincent tool or policy directory"
+        "Run this command from within a Vincent ability or policy directory"
       )
     );
     process.exit(1);
