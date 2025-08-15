@@ -19,7 +19,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@lit-protocol/vincent-scaffold-sdk": "^2.0.2-alpha",
+    "@lit-protocol/vincent-scaffold-sdk": "^2.0.3-alpha",
     "@lit-protocol/vincent-ability-sdk": "^2.0.0"
   },
   "exports": {

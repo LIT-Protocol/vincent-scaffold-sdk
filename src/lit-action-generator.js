@@ -35,7 +35,7 @@ function generatePolicyLitAction() {
 
 /**
  * Generate lit-action.ts file based on type
- * @param {string} type - Either 'tool' or 'policy'
+ * @param {string} type - Either 'ability' or 'policy'
  * @param {string} outputDir - Directory to write the file to
  */
 function generateLitAction(type, outputDir = "./src/generated") {
