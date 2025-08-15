@@ -133,6 +133,7 @@ const SendLimitPolicy = createVincentPolicy({
 ```typescript
 export const vincentAbility = createVincentAbility({
   packageName: "@agentic-ai/vincent-ability-erc20-transfer" as const,
+  abilityDescription: "ERC-20 transfer ability",
   abilityParamsSchema,
   supportedPolicies: supportedPoliciesForAbility([SendLimitPolicy]),
   precheckSuccessSchema,

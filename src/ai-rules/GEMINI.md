@@ -58,6 +58,7 @@ import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
 export const vincentAbility = createVincentAbility({
   packageName: "{{packageName}}" as const,
+  abilityDescription: "{{abilityDescription}}",
   abilityParamsSchema,
   
   // Phase 1: Input validation (NO blockchain access)

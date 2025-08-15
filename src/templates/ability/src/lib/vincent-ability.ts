@@ -26,6 +26,7 @@ const SendLimitPolicy = createVincentAbilityPolicy({
 
 export const vincentAbility = createVincentAbility({
   packageName: "{{packageName}}" as const,
+  abilityDescription: "{{abilityDescription}}",
   abilityParamsSchema,
   supportedPolicies: supportedPoliciesForAbility([SendLimitPolicy]),
 

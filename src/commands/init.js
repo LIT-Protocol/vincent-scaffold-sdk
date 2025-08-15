@@ -31,9 +31,9 @@ const PACKAGES_CONFIG = {
   ethers: { version: "^5.7.2", behavior: "always" },
   chalk: { version: "4.1.2", behavior: "always" },
   "@lit-protocol/vincent-ability-sdk": { version: "*", behavior: "always" },
+  "@lit-protocol/vincent-app-sdk": { version: "*", behavior: "always" },
   "@lit-protocol/vincent-scaffold-sdk": { version: "*", behavior: "always" },
   "@lit-protocol/vincent-contracts-sdk": { version: "*", behavior: "always" },
-  // "@ansonhkg/abi-extractor": { version: "1.1.0", behavior: "always" },
 };
 
 // AI Rules configuration - files to create/update during init
@@ -591,6 +591,13 @@ async function initProject() {
         packageName: abilityPackageName,
         camelCaseName: DEFAULT_ABILITY_CAMEL_CASE_NAME,
         policyPackageName: policyPackageName,
+        abilityDescription: `A ${DEFAULT_ABILITY_NAME.replace(
+          /-/g,
+          " "
+        )} ability that provides functionality for ${DEFAULT_ABILITY_NAME.replace(
+          /-/g,
+          " "
+        )} operations`,
       };
 
       createProjectFromTemplate("ability", defaultAbilityDir, abilityVariables);

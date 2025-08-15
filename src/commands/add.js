@@ -90,11 +90,12 @@ function createProject(type, name, directory) {
       camelCaseName: name.replace(/-([a-z])/g, (g) => g[1].toUpperCase()),
     };
 
-    // For abilities, add the default policy package name
+    // For abilities, add the default policy package name and description
     if (type === "ability") {
       const policyPrefix = vincentConfig.package.policyPrefix;
       const policyPackageName = `${vincentConfig.package.namespace}/${policyPrefix}${DEFAULT_POLICY_NAME}`;
       variables.policyPackageName = policyPackageName;
+      variables.abilityDescription = `A ${name.replace(/-/g, ' ')} ability that provides functionality for ${name.replace(/-/g, ' ')} operations`;
     }
 
     // Use the shared template creation function

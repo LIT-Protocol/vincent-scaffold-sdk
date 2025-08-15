@@ -69,6 +69,7 @@ import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
 export const vincentAbility = createVincentAbility({
   packageName: "{{packageName}}" as const,
+  abilityDescription: "{{abilityDescription}}",
   abilityParamsSchema,
   
   precheck: async ({ abilityParams }, { succeed, fail }) => {
