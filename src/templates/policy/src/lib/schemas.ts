@@ -12,8 +12,8 @@ export const abilityParamsSchema = z.object({
  * User parameters schema - policy configuration set by the user
  */
 export const userParamsSchema = z.object({
-  maxSends: z.bigint().min(1n).max(100n).default(2n),
-  timeWindowSeconds: z.bigint().min(1n).max(604800n).default(10n), // Default to 10 seconds for testing
+  maxSends: z.number().min(1).max(100).default(2),
+  timeWindowSeconds: z.number().min(1).max(604800).default(10), // Default to 10 seconds for testing
 });
 
 /**

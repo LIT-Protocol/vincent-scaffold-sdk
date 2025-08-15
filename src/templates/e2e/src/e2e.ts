@@ -44,8 +44,8 @@ import { bundledVincentAbility as nativeSendAbility } from "../../vincent-packag
   const PERMISSION_DATA: PermissionData = {
     [nativeSendAbility.ipfsCid]: {
       [sendLimitPolicyMetadata.ipfsCid]: {
-        maxSends: 2n,
-        timeWindowSeconds: 10n,
+        maxSends: 2,
+        timeWindowSeconds: 10,
       },
     },
     // Add more abilities and their policies here:
