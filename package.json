@@ -1,6 +1,6 @@
 {
   "name": "@lit-protocol/vincent-scaffold-sdk",
-  "version": "2.0.0-alpha",
+  "version": "2.0.1-alpha",
   "description": "Shared build configuration and utilities for Vincent tools and policies",
   "main": "index.js",
   "bin": {
