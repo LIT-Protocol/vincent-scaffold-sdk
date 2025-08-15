@@ -8,7 +8,7 @@ import type { PermissionData } from "@lit-protocol/vincent-contracts-sdk";
 // Apply log suppression FIRST, before any imports that might trigger logs
 suppressLitLogs(false);
 
-import { getVincentAbilityClient } from "@lit-protocol/vincent-app-sdk";
+import { getVincentAbilityClient } from "@lit-protocol/vincent-app-sdk/abilityClient";
 // Abilities and Policies that we wil be testing
 import { vincentPolicyMetadata as sendLimitPolicyMetadata } from "../../vincent-packages/policies/send-counter-limit/dist/index.js";
 import { bundledVincentAbility as nativeSendAbility } from "../../vincent-packages/abilities/native-send/dist/index.js";

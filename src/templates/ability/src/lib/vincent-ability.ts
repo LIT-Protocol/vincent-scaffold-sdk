@@ -3,7 +3,6 @@ import {
   createVincentAbilityPolicy,
   supportedPoliciesForAbility,
 } from "@lit-protocol/vincent-app-sdk";
-import "@lit-protocol/vincent-app-sdk/internal";
 import { bundledVincentPolicy } from "../../../../policies/send-counter-limit/dist/index.js";
 
 import {
