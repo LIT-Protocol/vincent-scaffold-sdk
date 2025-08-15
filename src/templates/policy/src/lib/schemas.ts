@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 /**
- * Tool parameters schema - matches the tool this policy works with
+ * Ability parameters schema - matches the ability this policy works with
  */
-export const toolParamsSchema = z.object({
+export const abilityParamsSchema = z.object({
   to: z.string().min(1, "Recipient address cannot be empty"),
   amount: z.string().min(1, "Amount cannot be empty"),
 });
@@ -12,8 +12,8 @@ export const toolParamsSchema = z.object({
  * User parameters schema - policy configuration set by the user
  */
 export const userParamsSchema = z.object({
-  maxSends: z.bigint().min(1n).max(100n).default(2n),
-  timeWindowSeconds: z.bigint().min(1n).max(604800n).default(10n), // Default to 10 seconds for testing
+  maxSends: z.number().min(1).max(100).default(2),
+  timeWindowSeconds: z.number().min(1).max(604800).default(10), // Default to 10 seconds for testing
 });
 
 /**
@@ -84,7 +84,7 @@ export const commitDenyResultSchema = z.object({
 });
 
 // Type exports
-export type ToolParams = z.infer<typeof toolParamsSchema>;
+export type AbilityParams = z.infer<typeof abilityParamsSchema>;
 export type UserParams = z.infer<typeof userParamsSchema>;
 export type CommitParams = z.infer<typeof commitParamsSchema>;
 export type PrecheckAllow = z.infer<typeof precheckAllowResultSchema>;

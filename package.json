@@ -1,7 +1,7 @@
 {
   "name": "@lit-protocol/vincent-scaffold-sdk",
-  "version": "1.1.8",
-  "description": "Shared build configuration and utilities for Vincent tools and policies",
+  "version": "2.0.8-alpha",
+  "description": "Shared build configuration and utilities for Vincent abilities and policies",
   "main": "index.js",
   "bin": {
     "vincent-scaffold": "./bin/cli.js"
@@ -58,7 +58,6 @@
     "./deploy-lit-action": "./src/deploy-lit-action.js"
   },
   "scripts": {
-    "generate:abis": "dotenv -e .env -- sh -c 'abi-to-signature ./src/e2e/abis/VincentAppFacet.abi.json ./src/e2e/abis/generated --name vincentAppFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentAppViewFacet.abi.json ./src/e2e/abis/generated --name vincentAppViewFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentUserFacet.abi.json ./src/e2e/abis/generated --name vincentUserFacetSignatures --address $VINCENT_ADDRESS && abi-to-signature ./src/e2e/abis/VincentUserViewFacet.abi.json ./src/e2e/abis/generated --name vincentUserViewFacetSignatures --address $VINCENT_ADDRESS'",
     "build": "tsc && npm run sync-versions",
     "prepublishOnly": "npm run validate && npm run sync-versions && npm run build",
     "validate": "node -c ./src/esbuild-share-config.js && node -c ./src/deno-fetch-shim.js",
@@ -67,9 +66,9 @@
   "keywords": [
     "vincent",
     "esbuild",
-    "build-tools",
+    "build-abilities",
     "lit-protocol",
-    "vincent-tool",
+    "vincent-ability",
     "vincent-policy"
   ],
   "author": "",
@@ -78,6 +77,7 @@
     "@account-kit/infra": "^4.50.1",
     "@account-kit/smart-contracts": "^4.50.1",
     "@lit-protocol/contracts-sdk": "^7.2.0",
+    "@lit-protocol/vincent-contracts-sdk": "^1.0.1",
     "@wagmi/core": "^2.17.3",
     "chalk": "4.1.2",
     "dotenv": "^16.0.0",
@@ -86,16 +86,14 @@
     "ethers": "5.7.2",
     "inquirer": "^8.2.6",
     "ipfs-only-hash": "^4.0.0",
-    "viem": "^2.29.2"
+    "viem": "2.33.0"
   },
   "devDependencies": {
-    "@ansonhkg/abi-extractor": "1.0.0",
     "dotenv-cli": "^8.0.0",
     "typescript": "^5.0.0"
   },
   "peerDependencies": {
-    "@lit-protocol/vincent-app-sdk": "*",
-    "@lit-protocol/vincent-tool-sdk": "*"
+    "@lit-protocol/vincent-ability-sdk": "*"
   },
   "engines": {
     "node": ">=16.0.0"

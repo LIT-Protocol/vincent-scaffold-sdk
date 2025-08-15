@@ -1,14 +1,14 @@
-const fs = require('fs');
-const path = require('path');
-const chalk = require('chalk');
-const { requireVincentConfig } = require('../utils/config-utils');
+const fs = require("fs");
+const path = require("path");
+const chalk = require("chalk");
+const { requireVincentConfig } = require("../utils/config-utils");
 const {
   processTemplate,
   getTemplateFiles,
   validateTemplateType,
-} = require('../template-loader');
+} = require("../template-loader");
 
-// Default policy name that tools will reference
+// Default policy name that abilities will reference
 const DEFAULT_POLICY_NAME = "send-counter-limit";
 
 /**
@@ -44,7 +44,7 @@ function createProjectFromTemplate(type, directory, variables) {
       }
 
       // Handle JSON files (need to parse and format)
-      if (filename.endsWith('.json')) {
+      if (filename.endsWith(".json")) {
         const jsonContent = JSON.parse(content);
         fs.writeFileSync(outputPath, JSON.stringify(jsonContent, null, 2));
       } else {
@@ -66,8 +66,8 @@ function createProject(type, name, directory) {
   // If directory not provided, use configured directory structure
   if (!directory || directory === name) {
     const baseDir =
-      type === 'tool'
-        ? vincentConfig.directories.tools
+      type === "ability"
+        ? vincentConfig.directories.abilities
         : vincentConfig.directories.policies;
     directory = path.resolve(baseDir, name);
   }
@@ -77,8 +77,8 @@ function createProject(type, name, directory) {
   try {
     // Template variables with configuration
     const prefix =
-      type === 'tool'
-        ? vincentConfig.package.toolPrefix
+      type === "ability"
+        ? vincentConfig.package.abilityPrefix
         : vincentConfig.package.policyPrefix;
     const packageName = `${vincentConfig.package.namespace}/${prefix}${name}`;
 
@@ -90,11 +90,12 @@ function createProject(type, name, directory) {
       camelCaseName: name.replace(/-([a-z])/g, (g) => g[1].toUpperCase()),
     };
 
-    // For tools, add the default policy package name
-    if (type === 'tool') {
+    // For abilities, add the default policy package name and description
+    if (type === "ability") {
       const policyPrefix = vincentConfig.package.policyPrefix;
       const policyPackageName = `${vincentConfig.package.namespace}/${policyPrefix}${DEFAULT_POLICY_NAME}`;
       variables.policyPackageName = policyPackageName;
+      variables.abilityDescription = `A ${name.replace(/-/g, ' ')} ability that provides functionality for ${name.replace(/-/g, ' ')} operations`;
     }
 
     // Use the shared template creation function
@@ -125,5 +126,5 @@ function createProject(type, name, directory) {
 }
 
 module.exports = {
-  createProject
+  createProject,
 };

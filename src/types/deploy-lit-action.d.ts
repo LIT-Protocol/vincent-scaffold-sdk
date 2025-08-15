@@ -2,7 +2,7 @@ export interface DeployOptions {
   pinataJwt?: string;
   outputFile?: string;
   generatedDir?: string;
-  projectType?: 'tool' | 'policy';
+  projectType?: "ability" | "policy";
 }
 
 declare function deployLitAction(options?: DeployOptions): Promise<string>;

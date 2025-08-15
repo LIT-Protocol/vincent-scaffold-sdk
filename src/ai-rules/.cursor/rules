@@ -1,7 +1,7 @@
 # Vincent Scaffold SDK - Cursor IDE Extended Rules
 
 ## Project Overview
-Vincent Scaffold SDK creates blockchain tools and policies for Lit Actions execution environment.
+Vincent Scaffold SDK creates blockchain abilities and policies for Lit Actions execution environment.
 
 ## Critical Development Constraints
 
@@ -17,8 +17,8 @@ Vincent Scaffold SDK creates blockchain tools and policies for Lit Actions execu
 Every component requires comprehensive Zod schemas:
 
 ```typescript
-// Tool parameter schema
-export const toolParamsSchema = z.object({
+// Ability parameter schema
+export const abilityParamsSchema = z.object({
   to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid address"),
   amount: z.string().regex(/^\d*\.?\d+$/, "Invalid amount")
 });
@@ -31,7 +31,7 @@ export const executeSuccessSchema = z.object({...});
 
 #### Three-Phase Execution Model
 
-**Tools:**
+**Abilities:**
 1. `precheck` - Input validation (no blockchain access)
 2. `execute` - Blockchain operations (laUtils available)
 
@@ -42,15 +42,15 @@ export const executeSuccessSchema = z.object({...});
 
 ## File Structure Standards
 
-### Tool Structure
+### Ability Structure
 ```
-vincent-packages/tools/tool-name/
+vincent-packages/abilities/ability-name/
 ├── src/
 │   └── lib/
 │       ├── schemas.ts        # Zod validation schemas
-│       ├── vincent-tool.ts   # Main implementation
+│       ├── vincent-ability.ts   # Main implementation
 │       └── helpers/
-│           └── index.ts      # Tool-specific utilities
+│           └── index.ts      # Ability-specific utilities
 ├── package.json              # Package configuration
 ├── .gitignore               # Includes .env patterns
 └── tsconfig.json            # TypeScript config
@@ -73,28 +73,29 @@ vincent-packages/policies/policy-name/
 ## Code Generation Templates
 
 ### Template Variable Patterns
-- `{{packageName}}` - Full package name (e.g., `@company/vincent-tool-name`)
+- `{{packageName}}` - Full package name (e.g., `@company/vincent-ability-name`)
 - `{{name}}` - Component name (e.g., `erc20-transfer`)
 - `{{namespace}}` - Package namespace (e.g., `@company`)
 - `{{camelCaseName}}` - CamelCase version (e.g., `erc20Transfer`)
-- `{{policyPackageName}}` - Dynamic policy reference for tools
+- `{{policyPackageName}}` - Dynamic policy reference for abilities
 
-### Tool Template Pattern
+### Ability Template Pattern
 ```typescript
-import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-ability-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
-export const vincentTool = createVincentTool({
+export const vincentAbility = createVincentAbility({
   packageName: "{{packageName}}" as const,
-  toolParamsSchema,
-  supportedPolicies: supportedPoliciesForTool([PolicyConfig]),
+  abilityDescription: "{{abilityDescription}}",
+  abilityParamsSchema,
+  supportedPolicies: supportedPoliciesForAbility([PolicyConfig]),
   
-  precheck: async ({ toolParams }, { succeed, fail }) => {
+  precheck: async ({ abilityParams }, { succeed, fail }) => {
     // Validation only - NO laUtils
     return succeed({ validated: true });
   },
 
-  execute: async ({ toolParams }, { succeed, fail, delegation, policiesContext }) => {
+  execute: async ({ abilityParams }, { succeed, fail, delegation, policiesContext }) => {
     try {
       // laUtils available here
       const provider = new ethers.providers.JsonRpcProvider(
@@ -117,15 +118,15 @@ export const vincentTool = createVincentTool({
 
 ### Policy Template Pattern
 ```typescript
-import { createVincentPolicy } from "@lit-protocol/vincent-tool-sdk";
+import { createVincentPolicy } from "@lit-protocol/vincent-ability-sdk";
 
 export const vincentPolicy = createVincentPolicy({
   packageName: "{{packageName}}" as const,
-  toolParamsSchema,
+  abilityParamsSchema,
   userParamsSchema,
   commitParamsSchema,
   
-  precheck: async ({ toolParams, userParams }, { allow, deny, delegation }) => {
+  precheck: async ({ abilityParams, userParams }, { allow, deny, delegation }) => {
     // Early validation - NO laUtils
     const { ethAddress } = delegation.delegatorPkpInfo;
     const limitCheck = await checkLimitFromExternalSource(ethAddress);
@@ -133,7 +134,7 @@ export const vincentPolicy = createVincentPolicy({
     return limitCheck.allowed ? allow(limitCheck) : deny(limitCheck);
   },
 
-  evaluate: async ({ toolParams, userParams }, { allow, deny }) => {
+  evaluate: async ({ abilityParams, userParams }, { allow, deny }) => {
     // Runtime checks - laUtils available
     const result = await Lit.Actions.runOnce(
       { waitForResponse: true, name: "policyCheck" },
@@ -163,15 +164,15 @@ When adding new components, MUST update root `package.json`:
 ```json
 {
   "scripts": {
-    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/policy-name && npm install && npm run build && cd ../../tools/tool-name && npm install && npm run build'"
+    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/policy-name && npm install && npm run build && cd ../../abilities/ability-name && npm install && npm run build'"
   }
 }
 ```
 
 ### Development Workflow
-1. Generate component: `npx @lit-protocol/vincent-scaffold-sdk add tool my-tool`
+1. Generate component: `npx @lit-protocol/vincent-scaffold-sdk add ability my-ability`
 2. Define schemas in `src/lib/schemas.ts`
-3. Implement logic in `src/lib/vincent-tool.ts`
+3. Implement logic in `src/lib/vincent-ability.ts`
 4. Add helpers in `src/lib/helpers/index.ts`
 5. Update root build script
 6. Build: `npm run vincent:build`
@@ -220,29 +221,29 @@ const ethAddress = laUtils.helpers.toEthAddress(publicKey);
 ### Import Pattern
 ```typescript
 // Use relative paths to built dist/
-import { bundledVincentTool } from "../../vincent-packages/tools/my-tool/dist/index.js";
+import { bundledVincentAbility } from "../../vincent-packages/abilities/my-ability/dist/index.js";
 import { vincentPolicyMetadata } from "../../vincent-packages/policies/my-policy/dist/index.js";
 ```
 
 ### Test Configuration
 ```typescript
-const toolConfig = createVincentToolConfig({
-  tool: bundledVincentTool,
+const abilityConfig = createVincentAbilityConfig({
+  ability: bundledVincentAbility,
   userParams: {
     to: "0x742d35Cc6635C0532925a3b8D400631707BFFfcc",
     amount: "0.001"
   }
 });
 
-const result = await chainClient.executeTools({
-  tools: [toolConfig],
+const result = await chainClient.executeAbilities({
+  abilities: [abilityConfig],
   policies: [policyMetadata]
 });
 ```
 
 ## Common Anti-Patterns
 
-### ❌ Forbidden in Tools/Policies
+### ❌ Forbidden in Abilities/Policies
 ```typescript
 // Environment variables
 const apiKey = process.env.API_KEY;
@@ -257,7 +258,7 @@ const config = fs.readFileSync('config.json');
 const fakeResult = { txHash: "0xfake..." };
 
 // laUtils in precheck
-precheck: async ({ toolParams }, { succeed, fail }) => {
+precheck: async ({ abilityParams }, { succeed, fail }) => {
   const provider = new ethers.providers.JsonRpcProvider(
   "https://yellowstone-rpc.litprotocol.com/"
 ); // FAILS
@@ -267,15 +268,15 @@ precheck: async ({ toolParams }, { succeed, fail }) => {
 ### ✅ Correct Patterns
 ```typescript
 // Validation in precheck
-precheck: async ({ toolParams }, { succeed, fail }) => {
-  if (!isValidAddress(toolParams.to)) {
+precheck: async ({ abilityParams }, { succeed, fail }) => {
+  if (!isValidAddress(abilityParams.to)) {
     return fail({ error: "Invalid address" });
   }
   return succeed({ validated: true });
 }
 
 // laUtils in execute/evaluate/commit
-execute: async ({ toolParams }, { succeed, fail }) => {
+execute: async ({ abilityParams }, { succeed, fail }) => {
   const provider = new ethers.providers.JsonRpcProvider(
   "https://yellowstone-rpc.litprotocol.com/"
 );
@@ -298,7 +299,7 @@ interface TransferResult {
 }
 
 // Error handling types
-type ToolResult<T> = 
+type AbilityResult<T> = 
   | { success: true; result: T }
   | { success: false; error: string };
 ```
@@ -323,7 +324,7 @@ const amountSchema = z.string()
 npx @lit-protocol/vincent-scaffold-sdk init
 
 # Component creation
-npx @lit-protocol/vincent-scaffold-sdk add tool erc20-transfer
+npx @lit-protocol/vincent-scaffold-sdk add ability erc20-transfer
 npx @lit-protocol/vincent-scaffold-sdk add policy rate-limiter
 
 # Build and test

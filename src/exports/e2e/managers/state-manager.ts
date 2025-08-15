@@ -2,9 +2,10 @@ import chalk from "chalk";
 import { promises as fs } from "fs";
 import path from "path";
 import { createHash } from "crypto";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { ethers } from "ethers";
 import { CapacityCreditInfo } from "../utils/mint-cc";
 import { PKPInfo } from "../utils/mint-pkp";
+import { PermissionData } from "@lit-protocol/vincent-contracts-sdk";
 
 interface AccountState {
   privateKey: string;
@@ -24,30 +25,28 @@ interface CapacityCreditState extends CapacityCreditInfo {
 }
 
 interface VincentAppState {
-  appId: string;
-  appVersion: string;
+  appId: number;
+  appVersion: number;
   createdAt: string;
   network: string;
   delegateeAddress: string;
-  toolIpfsCids: string[];
-  toolPolicies: string[][];
-  toolPolicyParameterNames: string[][];
-  toolPolicyParameterTypes: number[][];
-  toolPolicyParameterValues?: string[][]; // Optional for backward compatibility
+  abilityIpfsCids: string[];
+  abilityPolicies: string[][];
+  policyParams: PermissionData;
 }
 
 interface PKPAppPermissionState {
-  pkpTokenId: string;
-  appId: string;
-  appVersion: string;
+  pkpEthAddress: string;
+  appId: number;
+  appVersion: number;
   permittedAt: string;
   network: string;
 }
 
 interface ConfigurationState {
   configHash: string;
-  toolIpfsCids: string[];
-  toolPolicyCids: string[][];
+  abilityIpfsCids: string[];
+  abilityPolicyCids: string[][];
   lastUsed: string;
   network: string;
   state: {
@@ -57,10 +56,10 @@ interface ConfigurationState {
 }
 
 interface AppVersionConfiguration {
-  appId: string;
-  appVersion: string;
-  toolIpfsCids: string[];
-  toolPolicyCids: string[][];
+  appId: number;
+  appVersion: number;
+  abilityIpfsCids: string[];
+  abilityPolicyCids: string[][];
   lastUsed: string;
   network: string;
   state: {
@@ -129,14 +128,14 @@ export class StateManager {
     private network: string,
     private testFileName: string,
     private configHash: string,
-    toolIpfsCids?: string[],
-    toolPolicyCids?: string[][]
+    abilityIpfsCids?: string[],
+    abilityPolicyCids?: string[][]
   ) {
-    // If tool/policy CIDs are provided, generate the real config hash
-    if (toolIpfsCids && toolPolicyCids) {
+    // If ability/policy CIDs are provided, generate the real config hash
+    if (abilityIpfsCids && abilityPolicyCids) {
       this.configHash = StateManager.generateConfigHash(
-        toolIpfsCids,
-        toolPolicyCids
+        abilityIpfsCids,
+        abilityPolicyCids
       );
     }
 
@@ -148,15 +147,15 @@ export class StateManager {
   }
 
   /**
-   * Generate configuration hash from tool and policy IPFS CIDs
+   * Generate configuration hash from ability and policy IPFS CIDs
    */
   static generateConfigHash(
-    toolIpfsCids: string[],
-    toolPolicyCids: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicyCids: string[][]
   ): string {
     // Combine all IPFS CIDs and create a hash
-    const flattenedPolicyCids = toolPolicyCids.flat();
-    const allCids = [...toolIpfsCids, ...flattenedPolicyCids];
+    const flattenedPolicyCids = abilityPolicyCids.flat();
+    const allCids = [...abilityIpfsCids, ...flattenedPolicyCids];
     const sortedCids = allCids.sort();
     const cidString = sortedCids.join("");
     const hash = createHash("sha256")
@@ -211,15 +210,15 @@ export class StateManager {
 
     if (
       !this.nestedState.testFiles[this.testFileName].configurations[
-        this.configHash
+      this.configHash
       ]
     ) {
       this.nestedState.testFiles[this.testFileName].configurations[
         this.configHash
       ] = {
         configHash: this.configHash,
-        toolIpfsCids: [],
-        toolPolicyCids: [],
+        abilityIpfsCids: [],
+        abilityPolicyCids: [],
         lastUsed: new Date().toISOString(),
         network: this.network,
         state: {},
@@ -232,16 +231,16 @@ export class StateManager {
   }
 
   /**
-   * Set the real configuration hash based on tool/policy CIDs
+   * Set the real configuration hash based on ability/policy CIDs
    * This should be called before any state operations when CIDs are known
    */
   setConfigurationFromCIDs(
-    toolIpfsCids: string[],
-    toolPolicyCids: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicyCids: string[][]
   ): void {
     const newConfigHash = StateManager.generateConfigHash(
-      toolIpfsCids,
-      toolPolicyCids
+      abilityIpfsCids,
+      abilityPolicyCids
     );
 
     if (newConfigHash !== this.configHash) {
@@ -259,10 +258,10 @@ export class StateManager {
       this.currentConfigState = this.getCurrentConfigState();
 
       // Update metadata
-      this.updateConfigurationMetadata(toolIpfsCids, toolPolicyCids);
+      this.updateConfigurationMetadata(abilityIpfsCids, abilityPolicyCids);
     } else {
       // Update metadata even if hash is same (for lastUsed timestamp)
-      this.updateConfigurationMetadata(toolIpfsCids, toolPolicyCids);
+      this.updateConfigurationMetadata(abilityIpfsCids, abilityPolicyCids);
     }
   }
 
@@ -270,12 +269,12 @@ export class StateManager {
    * Update configuration metadata
    */
   updateConfigurationMetadata(
-    toolIpfsCids: string[],
-    toolPolicyCids: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicyCids: string[][]
   ) {
     const configState = this.getCurrentConfigState();
-    configState.toolIpfsCids = toolIpfsCids;
-    configState.toolPolicyCids = toolPolicyCids;
+    configState.abilityIpfsCids = abilityIpfsCids;
+    configState.abilityPolicyCids = abilityPolicyCids;
     configState.lastUsed = new Date().toISOString();
   }
 
@@ -283,50 +282,50 @@ export class StateManager {
    * Generate app version key from appId and appVersion
    */
   private static generateAppVersionKey(
-    appId: string,
-    appVersion: string
+    appId: number,
+    appVersion: number
   ): string {
     return `${appId}-${appVersion}`;
   }
 
-  /**
-   * Get app version configuration, creating if needed
-   */
-  private getAppVersionConfiguration(
-    appId: string,
-    appVersion: string
-  ): AppVersionConfiguration {
-    const appVersionKey = StateManager.generateAppVersionKey(appId, appVersion);
+  // /**
+  //  * Get app version configuration, creating if needed
+  //  */
+  // private getAppVersionConfiguration(
+  //   appId: string,
+  //   appVersion: string
+  // ): AppVersionConfiguration {
+  //   const appVersionKey = StateManager.generateAppVersionKey(appId, appVersion);
 
-    if (!this.nestedState.testFiles[this.testFileName]) {
-      this.nestedState.testFiles[this.testFileName] = {
-        configurations: {},
-        appVersions: {},
-      };
-    }
+  //   if (!this.nestedState.testFiles[this.testFileName]) {
+  //     this.nestedState.testFiles[this.testFileName] = {
+  //       configurations: {},
+  //       appVersions: {},
+  //     };
+  //   }
 
-    if (
-      !this.nestedState.testFiles[this.testFileName].appVersions[appVersionKey]
-    ) {
-      throw new Error(
-        `App version configuration ${appVersionKey} not found. It should be created when saving the app.`
-      );
-    }
+  //   if (
+  //     !this.nestedState.testFiles[this.testFileName].appVersions[appVersionKey]
+  //   ) {
+  //     throw new Error(
+  //       `App version configuration ${appVersionKey} not found. It should be created when saving the app.`
+  //     );
+  //   }
 
-    return this.nestedState.testFiles[this.testFileName].appVersions[
-      appVersionKey
-    ];
-  }
+  //   return this.nestedState.testFiles[this.testFileName].appVersions[
+  //     appVersionKey
+  //   ];
+  // }
 
   /**
    * Save app version configuration
    */
   private saveAppVersionConfiguration(
-    appId: string,
-    appVersion: string,
+    appId: number,
+    appVersion: number,
     vincentApp: VincentAppState,
-    toolIpfsCids: string[],
-    toolPolicyCids: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicyCids: string[][]
   ): void {
     const appVersionKey = StateManager.generateAppVersionKey(appId, appVersion);
 
@@ -340,8 +339,8 @@ export class StateManager {
     this.nestedState.testFiles[this.testFileName].appVersions[appVersionKey] = {
       appId,
       appVersion,
-      toolIpfsCids,
-      toolPolicyCids,
+      abilityIpfsCids,
+      abilityPolicyCids,
       lastUsed: new Date().toISOString(),
       network: this.network,
       state: {
@@ -356,29 +355,25 @@ export class StateManager {
   }
 
   /**
-   * Get or register Vincent app using app versioning approach
-   */
+     * Get or register Vincent app using app versioning approach
+     */
   async getOrRegisterVincentAppVersioned(
     delegateeAddress: string,
-    registerAppFunction: () => Promise<{ appId: string; appVersion: string }>,
+    registerAppFunction: () => Promise<{ appId: number; appVersion: number }>,
     registerNextVersionFunction: (
-      appId: string
-    ) => Promise<{ appId: string; appVersion: string }>,
-    toolIpfsCids: string[],
-    toolPolicies: string[][],
-    toolPolicyParameterNames: string[][],
-    toolPolicyParameterTypes: number[][],
-    toolPolicyParameterValues?: string[][]
+      appId: number
+    ) => Promise<{ appId: number; appVersion: number }>,
+    abilityIpfsCids: string[],
+    abilityPolicies: string[][],
+    policyParams: PermissionData,
   ): Promise<{
-    appId: string;
-    appVersion: string;
+    appId: number;
+    appVersion: number;
     isNew: boolean;
     isNewVersion: boolean;
-    toolIpfsCids: string[];
-    toolPolicies: string[][];
-    toolPolicyParameterNames: string[][];
-    toolPolicyParameterTypes: number[][];
-    toolPolicyParameterValues?: string[][];
+    abilityIpfsCids: string[];
+    abilityPolicies: string[][];
+    policyParams: PermissionData;
   }> {
     // First, check if we have any existing app for this delegatee
     const existingApp = this.getExistingVincentApp(delegateeAddress);
@@ -386,11 +381,11 @@ export class StateManager {
     if (existingApp) {
       const appId = existingApp.appId;
 
-      // Check if current tools/policies match any existing app version
+      // Check if current abilities/policies match any existing app version
       const matchingAppVersion = this.findMatchingAppVersion(
         appId,
-        toolIpfsCids,
-        toolPolicies
+        abilityIpfsCids,
+        abilityPolicies
       );
 
       if (matchingAppVersion) {
@@ -404,11 +399,9 @@ export class StateManager {
           appVersion: matchingAppVersion,
           isNew: false,
           isNewVersion: false,
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames,
-          toolPolicyParameterTypes,
-          toolPolicyParameterValues,
+          abilityIpfsCids,
+          abilityPolicies,
+          policyParams,
         };
       } else {
         // Register new version for existing app
@@ -422,11 +415,9 @@ export class StateManager {
           appId,
           appVersion,
           delegateeAddress,
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames,
-          toolPolicyParameterTypes,
-          toolPolicyParameterValues,
+          abilityIpfsCids,
+          abilityPolicies,
+          policyParams,
           createdAt: new Date().toISOString(),
           network: this.network,
         };
@@ -435,8 +426,8 @@ export class StateManager {
           appId,
           appVersion,
           vincentApp,
-          toolIpfsCids,
-          toolPolicies
+          abilityIpfsCids,
+          abilityPolicies
         );
 
         return {
@@ -444,11 +435,9 @@ export class StateManager {
           appVersion,
           isNew: false,
           isNewVersion: true,
-          toolIpfsCids,
-          toolPolicies,
-          toolPolicyParameterNames,
-          toolPolicyParameterTypes,
-          toolPolicyParameterValues,
+          abilityIpfsCids,
+          abilityPolicies,
+          policyParams,
         };
       }
     } else {
@@ -461,11 +450,9 @@ export class StateManager {
         appId,
         appVersion,
         delegateeAddress,
-        toolIpfsCids,
-        toolPolicies,
-        toolPolicyParameterNames,
-        toolPolicyParameterTypes,
-        toolPolicyParameterValues,
+        abilityIpfsCids,
+        abilityPolicies,
+        policyParams,
         createdAt: new Date().toISOString(),
         network: this.network,
       };
@@ -474,8 +461,8 @@ export class StateManager {
         appId,
         appVersion,
         vincentApp,
-        toolIpfsCids,
-        toolPolicies
+        abilityIpfsCids,
+        abilityPolicies
       );
 
       // Also save to current config for backward compatibility
@@ -483,11 +470,9 @@ export class StateManager {
         appId,
         appVersion,
         delegateeAddress,
-        toolIpfsCids,
-        toolPolicies,
-        toolPolicyParameterNames,
-        toolPolicyParameterTypes,
-        toolPolicyParameterValues
+        abilityIpfsCids,
+        abilityPolicies,
+        policyParams,
       );
 
       return {
@@ -495,23 +480,21 @@ export class StateManager {
         appVersion,
         isNew: true,
         isNewVersion: false,
-        toolIpfsCids,
-        toolPolicies,
-        toolPolicyParameterNames,
-        toolPolicyParameterTypes,
-        toolPolicyParameterValues,
+        abilityIpfsCids,
+        abilityPolicies,
+        policyParams,
       };
     }
   }
 
   /**
-   * Find matching app version based on tool/policy CIDs
+   * Find matching app version based on ability/policy CIDs
    */
   private findMatchingAppVersion(
-    appId: string,
-    toolIpfsCids: string[],
-    toolPolicies: string[][]
-  ): string | undefined {
+    appId: number,
+    abilityIpfsCids: string[],
+    abilityPolicies: string[][]
+  ): number | undefined {
     if (!this.nestedState.testFiles[this.testFileName]?.appVersions) {
       return undefined;
     }
@@ -521,15 +504,15 @@ export class StateManager {
 
     for (const [appVersionKey, config] of Object.entries(appVersions)) {
       if (config.appId === appId && config.network === this.network) {
-        // Check if tool CIDs match
-        const toolCidsMatch =
-          JSON.stringify(config.toolIpfsCids.sort()) ===
-          JSON.stringify(toolIpfsCids.sort());
+        // Check if ability CIDs match
+        const abilityCidsMatch =
+          JSON.stringify(config.abilityIpfsCids.sort()) ===
+          JSON.stringify(abilityIpfsCids.sort());
         const policyCidsMatch =
-          JSON.stringify(config.toolPolicyCids) ===
-          JSON.stringify(toolPolicies);
+          JSON.stringify(config.abilityPolicyCids) ===
+          JSON.stringify(abilityPolicies);
 
-        if (toolCidsMatch && policyCidsMatch) {
+        if (abilityCidsMatch && policyCidsMatch) {
           console.log(
             chalk.blue(`🔍 Found matching app version: ${appVersionKey}`)
           );
@@ -540,7 +523,7 @@ export class StateManager {
 
     console.log(
       chalk.yellow(
-        `🔍 No matching app version found for appId ${appId} with current tools/policies`
+        `🔍 No matching app version found for appId ${appId} with current abilities/policies`
       )
     );
     return undefined;
@@ -599,12 +582,10 @@ export class StateManager {
   }
 
   generateAccount(): AccountState {
-    const privateKey = generatePrivateKey();
-    const address = privateKeyToAccount(privateKey).address;
-
+    const wallet = ethers.Wallet.createRandom();
     return {
-      privateKey,
-      address,
+      privateKey: wallet.privateKey,
+      address: wallet.address,
       createdAt: new Date().toISOString(),
       network: this.network,
     };
@@ -616,12 +597,10 @@ export class StateManager {
   ): { privateKey: string; address: string; isNew: boolean } {
     // If private key provided from env, use it
     if (existingPrivateKey) {
-      const address = privateKeyToAccount(
-        existingPrivateKey as `0x${string}`
-      ).address;
+      const wallet = new ethers.Wallet(existingPrivateKey);
       return {
         privateKey: existingPrivateKey,
-        address,
+        address: wallet.address,
         isNew: false,
       };
     }
@@ -687,23 +666,23 @@ export class StateManager {
     };
   }
 
-  getGeneratedAccounts(): string[] {
-    // Get accounts for this test file
-    const testFileAccounts =
-      this.nestedState.testFiles[this.testFileName]?.accounts?.[this.network] ||
-      {};
+  // getGeneratedAccounts(): string[] {
+  //   // Get accounts for this test file
+  //   const testFileAccounts =
+  //     this.nestedState.testFiles[this.testFileName]?.accounts?.[this.network] ||
+  //     {};
 
-    // Also check legacy shared accounts for backward compatibility
-    const legacyAccounts =
-      this.nestedState.sharedAccounts?.[this.network] || {};
+  //   // Also check legacy shared accounts for backward compatibility
+  //   const legacyAccounts =
+  //     this.nestedState.sharedAccounts?.[this.network] || {};
 
-    // Combine both sources
-    const allAccounts = { ...legacyAccounts, ...testFileAccounts };
+  //   // Combine both sources
+  //   const allAccounts = { ...legacyAccounts, ...testFileAccounts };
 
-    return Object.entries(allAccounts)
-      .filter(([_, account]) => account !== undefined)
-      .map(([type, account]) => `${type}: ${account!.address}`);
-  }
+  //   return Object.entries(allAccounts)
+  //     .filter(([_, account]) => account !== undefined)
+  //     .map(([type, account]) => `${type}: ${account!.address}`);
+  // }
 
   /**
    * Get existing PKP or return undefined if needs minting
@@ -877,7 +856,7 @@ export class StateManager {
         mintedDate.getUTCFullYear(),
         mintedDate.getUTCMonth(),
         mintedDate.getUTCDate() +
-          capacityCreditInfo.daysUntilUTCMidnightExpiration,
+        capacityCreditInfo.daysUntilUTCMidnightExpiration,
         0,
         0,
         0,
@@ -1015,25 +994,21 @@ export class StateManager {
    * Save a newly registered Vincent app to state
    */
   saveVincentApp(
-    appId: string,
-    appVersion: string,
+    appId: number,
+    appVersion: number,
     delegateeAddress: string,
-    toolIpfsCids: string[],
-    toolPolicies: string[][],
-    toolPolicyParameterNames: string[][],
-    toolPolicyParameterTypes: number[][],
-    toolPolicyParameterValues?: string[][]
+    abilityIpfsCids: string[],
+    abilityPolicies: string[][],
+    policyParams: PermissionData,
   ): void {
     const configState = this.getCurrentConfigState();
     configState.state.vincentApp = {
       appId,
       appVersion,
       delegateeAddress,
-      toolIpfsCids,
-      toolPolicies,
-      toolPolicyParameterNames,
-      toolPolicyParameterTypes,
-      toolPolicyParameterValues,
+      abilityIpfsCids,
+      abilityPolicies,
+      policyParams,
       createdAt: new Date().toISOString(),
       network: this.network,
     };
@@ -1047,103 +1022,102 @@ export class StateManager {
     console.log(chalk.green(`   ↳ Delegatee: ${delegateeAddress}`));
   }
 
-  /**
-   * Get or register Vincent app for testing
-   */
-  async getOrRegisterVincentApp(
-    delegateeAddress: string,
-    registerFunction: () => Promise<{ appId: string; appVersion: string }>,
-    toolIpfsCids: string[],
-    toolPolicies: string[][],
-    toolPolicyParameterNames: string[][],
-    toolPolicyParameterTypes: number[][],
-    toolPolicyParameterValues?: string[][]
-  ): Promise<{
-    appId: string;
-    appVersion: string;
-    isNew: boolean;
-    toolIpfsCids: string[];
-    toolPolicies: string[][];
-    toolPolicyParameterNames: string[][];
-    toolPolicyParameterTypes: number[][];
-    toolPolicyParameterValues?: string[][];
-  }> {
-    // Check if we have an existing Vincent app for this delegatee
-    const existingApp = this.getExistingVincentApp(delegateeAddress);
-    if (existingApp) {
-      // Update the current configuration with the new tool/policy information
-      // since we're reusing an existing app but with potentially different tools
-      const configState = this.getCurrentConfigState();
-      if (configState.state.vincentApp) {
-        console.log(
-          chalk.blue(
-            `🔄 Updating reused app ${existingApp.appId} with current tool/policy configuration`
-          )
-        );
-        configState.state.vincentApp.toolIpfsCids = toolIpfsCids;
-        configState.state.vincentApp.toolPolicies = toolPolicies;
-        configState.state.vincentApp.toolPolicyParameterNames =
-          toolPolicyParameterNames;
-        configState.state.vincentApp.toolPolicyParameterTypes =
-          toolPolicyParameterTypes;
-        configState.state.vincentApp.toolPolicyParameterValues =
-          toolPolicyParameterValues;
-      }
+  // /**
+  //  * Get or register Vincent app for testing
+  //  */
+  // async getOrRegisterVincentApp(
+  //   delegateeAddress: string,
+  //   registerFunction: () => Promise<{ appId: string; appVersion: string }>,
+  //   abilityIpfsCids: string[],
+  //   abilityPolicies: string[][],
+  //   abilityPolicyParameterNames: string[][],
+  //   abilityPolicyParameterTypes: number[][],
+  //   abilityPolicyParameterValues?: string[][]
+  // ): Promise<{
+  //   appId: string;
+  //   appVersion: string;
+  //   isNew: boolean;
+  //   abilityIpfsCids: string[];
+  //   abilityPolicies: string[][];
+  //   abilityPolicyParameterNames: string[][];
+  //   abilityPolicyParameterTypes: number[][];
+  //   abilityPolicyParameterValues?: string[][];
+  // }> {
+  //   // Check if we have an existing Vincent app for this delegatee
+  //   const existingApp = this.getExistingVincentApp(delegateeAddress);
+  //   if (existingApp) {
+  //     // Update the current configuration with the new ability/policy information
+  //     // since we're reusing an existing app but with potentially different abilities
+  //     const configState = this.getCurrentConfigState();
+  //     if (configState.state.vincentApp) {
+  //       console.log(
+  //         chalk.blue(
+  //           `🔄 Updating reused app ${existingApp.appId} with current ability/policy configuration`
+  //         )
+  //       );
+  //       configState.state.vincentApp.abilityIpfsCids = abilityIpfsCids;
+  //       configState.state.vincentApp.abilityPolicies = abilityPolicies;
+  //       configState.state.vincentApp.abilityPolicyParameterNames =
+  //         abilityPolicyParameterNames;
+  //       configState.state.vincentApp.abilityPolicyParameterTypes =
+  //         abilityPolicyParameterTypes;
+  //       configState.state.vincentApp.abilityPolicyParameterValues =
+  //         abilityPolicyParameterValues;
+  //     }
 
-      return {
-        appId: existingApp.appId,
-        appVersion: existingApp.appVersion,
-        isNew: false,
-        toolIpfsCids,
-        toolPolicies,
-        toolPolicyParameterNames,
-        toolPolicyParameterTypes,
-        toolPolicyParameterValues,
-      };
-    }
+  //     return {
+  //       appId: existingApp.appId,
+  //       appVersion: existingApp.appVersion,
+  //       isNew: false,
+  //       abilityIpfsCids,
+  //       abilityPolicies,
+  //       abilityPolicyParameterNames,
+  //       abilityPolicyParameterTypes,
+  //       abilityPolicyParameterValues,
+  //     };
+  //   }
 
-    // Register new Vincent app
-    console.log(chalk.yellow(`🏢 Registering new Vincent app...`));
-    const { appId, appVersion } = await registerFunction();
+  //   // Register new Vincent app
+  //   console.log(chalk.yellow(`🏢 Registering new Vincent app...`));
+  //   const { appId, appVersion } = await registerFunction();
 
-    // Save to state
-    this.saveVincentApp(
-      appId,
-      appVersion,
-      delegateeAddress,
-      toolIpfsCids,
-      toolPolicies,
-      toolPolicyParameterNames,
-      toolPolicyParameterTypes,
-      toolPolicyParameterValues
-    );
+  //   // Save to state
+  //   this.saveVincentApp(
+  //     appId,
+  //     appVersion,
+  //     delegateeAddress,
+  //     abilityIpfsCids,
+  //     abilityPolicies,
+  //     abilityPolicyParameterNames,
+  //     abilityPolicyParameterTypes,
+  //     abilityPolicyParameterValues
+  //   );
 
-    return {
-      appId,
-      appVersion,
-      isNew: true,
-      toolIpfsCids,
-      toolPolicies,
-      toolPolicyParameterNames,
-      toolPolicyParameterTypes,
-      toolPolicyParameterValues,
-    };
-  }
+  //   return {
+  //     appId,
+  //     appVersion,
+  //     isNew: true,
+  //     abilityIpfsCids,
+  //     abilityPolicies,
+  //     abilityPolicyParameterNames,
+  //     abilityPolicyParameterTypes,
+  //     abilityPolicyParameterValues,
+  //   };
+  // }
 
   /**
    * Update existing Vincent app state with parameter values
    */
   updateVincentAppParameterValues(
-    appId: string,
-    toolPolicyParameterValues: string[][]
+    appId: number,
+    policyParams: PermissionData,
   ): void {
     const configState = this.getCurrentConfigState();
     if (
       configState.state.vincentApp &&
       configState.state.vincentApp.appId === appId
     ) {
-      configState.state.vincentApp.toolPolicyParameterValues =
-        toolPolicyParameterValues;
+      configState.state.vincentApp.policyParams = policyParams;
       console.log(
         chalk.green(
           `💾 Updated Vincent app parameter values for config ${this.configHash}: ${appId}`
@@ -1156,9 +1130,9 @@ export class StateManager {
    * Check if PKP is already permitted for the given app version
    */
   isPKPPermittedForAppVersion(
-    pkpTokenId: string,
-    appId: string,
-    appVersion: string
+    pkpEthAddress: string,
+    appId: number,
+    appVersion: number
   ): boolean {
     const configState = this.getCurrentConfigState();
     if (!configState.state.pkpAppPermissions) {
@@ -1167,7 +1141,7 @@ export class StateManager {
 
     const existingPermission = configState.state.pkpAppPermissions.find(
       (permission) =>
-        permission.pkpTokenId === pkpTokenId &&
+        permission.pkpEthAddress === pkpEthAddress &&
         permission.appId === appId &&
         permission.appVersion === appVersion &&
         permission.network === this.network
@@ -1176,7 +1150,7 @@ export class StateManager {
     if (existingPermission) {
       console.log(
         chalk.blue(
-          `🔐 PKP ${pkpTokenId} already permitted for app ${appId} v${appVersion} in config ${this.configHash}`
+          `🔐 PKP ${pkpEthAddress} already permitted for app ${appId} v${appVersion} in config ${this.configHash}`
         )
       );
       console.log(
@@ -1192,9 +1166,9 @@ export class StateManager {
    * Save PKP app permission to state
    */
   savePKPAppPermission(
-    pkpTokenId: string,
-    appId: string,
-    appVersion: string
+    pkpEthAddress: string,
+    appId: number,
+    appVersion: number
   ): void {
     const configState = this.getCurrentConfigState();
     if (!configState.state.pkpAppPermissions) {
@@ -1204,14 +1178,14 @@ export class StateManager {
     // Check if permission already exists to avoid duplicates
     const existingIndex = configState.state.pkpAppPermissions.findIndex(
       (permission) =>
-        permission.pkpTokenId === pkpTokenId &&
+        permission.pkpEthAddress === pkpEthAddress &&
         permission.appId === appId &&
         permission.appVersion === appVersion &&
         permission.network === this.network
     );
 
     const newPermission: PKPAppPermissionState = {
-      pkpTokenId,
+      pkpEthAddress,
       appId,
       appVersion,
       permittedAt: new Date().toISOString(),
@@ -1223,7 +1197,7 @@ export class StateManager {
       configState.state.pkpAppPermissions[existingIndex] = newPermission;
       console.log(
         chalk.gray(
-          `💾 Updated PKP app permission for config ${this.configHash}: PKP ${pkpTokenId} for app ${appId} v${appVersion}`
+          `💾 Updated PKP app permission for config ${this.configHash}: PKP ${pkpEthAddress} for app ${appId} v${appVersion}`
         )
       );
     } else {
@@ -1231,7 +1205,7 @@ export class StateManager {
       configState.state.pkpAppPermissions.push(newPermission);
       console.log(
         chalk.gray(
-          `💾 Saved PKP app permission for config ${this.configHash}: PKP ${pkpTokenId} for app ${appId} v${appVersion}`
+          `💾 Saved PKP app permission for config ${this.configHash}: PKP ${pkpEthAddress} for app ${appId} v${appVersion}`
         )
       );
     }

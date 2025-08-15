@@ -14,7 +14,7 @@ function getTemplatesDir() {
 
 /**
  * Load a template file for a specific type
- * @param {string} type - The template type ('tool' or 'policy')
+ * @param {string} type - The template type ('ability' or 'policy')
  * @param {string} filename - The template filename
  * @returns {string} The template content
  */
@@ -68,69 +68,72 @@ function substituteVariables(content, variables) {
 
 /**
  * Get all template files for a specific type (recursively)
- * @param {string} type - The template type ('tool' or 'policy')
+ * @param {string} type - The template type ('ability' or 'policy')
  * @param {string} subPath - Optional subdirectory path
  * @returns {string[]} Array of template file paths (relative to template root)
  */
-function getTemplateFiles(type, subPath = '') {
+function getTemplateFiles(type, subPath = "") {
   const typeDir = path.join(getTemplatesDir(), type, subPath);
-  
+
   if (!fs.existsSync(typeDir)) {
-    if (subPath === '') {
+    if (subPath === "") {
       throw new Error(`Template type not found: ${type}`);
     }
     return [];
   }
-  
+
   const files = [];
   const items = fs.readdirSync(typeDir);
-  
+
   for (const item of items) {
-    if (item.startsWith('.') && item !== '.gitignore') continue;
-    
+    if (item.startsWith(".") && item !== ".gitignore") continue;
+
     const itemPath = path.join(typeDir, item);
     const relativePath = path.join(subPath, item);
-    
+
     if (fs.statSync(itemPath).isDirectory()) {
       // Recursively get files from subdirectories
       const subFiles = getTemplateFiles(type, relativePath);
       files.push(...subFiles);
     } else {
       // Skip lit-action.ts as it will be generated
-      if (item === 'lit-action.ts') continue;
+      if (item === "lit-action.ts") continue;
       files.push(relativePath);
     }
   }
-  
+
   // Add tsconfig.json and global.d.ts to the file list (they will be processed from the shared template)
-  if (subPath === '') {
-    files.push('tsconfig.json');
-    files.push('global.d.ts');
+  if (subPath === "") {
+    files.push("tsconfig.json");
+    files.push("global.d.ts");
   }
-  
+
   return files;
 }
 
 /**
  * Process a template file with variable substitution
- * @param {string} type - The template type ('tool' or 'policy')
+ * @param {string} type - The template type ('ability' or 'policy')
  * @param {string} filename - The template filename
  * @param {object} variables - The variables to substitute
  * @returns {string} The processed template content
  */
 function processTemplate(type, filename, variables) {
   let content;
-  
-  // Use shared tsconfig template for both tools and policies
+
+  // Use shared tsconfig template for both abilities and policies
   if (filename === "tsconfig.json") {
-    const sharedTsconfigPath = path.join(getTemplatesDir(), "tsconfig.template.json");
+    const sharedTsconfigPath = path.join(
+      getTemplatesDir(),
+      "tsconfig.template.json"
+    );
     if (fs.existsSync(sharedTsconfigPath)) {
       content = fs.readFileSync(sharedTsconfigPath, "utf8");
     } else {
       content = loadTemplate(type, filename);
     }
   } else if (filename === "global.d.ts") {
-    // Use shared global.d.ts for both tools and policies
+    // Use shared global.d.ts for both abilities and policies
     const sharedGlobalDtsPath = path.join(getTemplatesDir(), "global.d.ts");
     if (fs.existsSync(sharedGlobalDtsPath)) {
       content = fs.readFileSync(sharedGlobalDtsPath, "utf8");
@@ -140,7 +143,7 @@ function processTemplate(type, filename, variables) {
   } else {
     content = loadTemplate(type, filename);
   }
-  
+
   return substituteVariables(content, variables);
 }
 
@@ -150,11 +153,7 @@ function processTemplate(type, filename, variables) {
  * @returns {boolean} True if all required templates exist
  */
 function validateTemplateType(type) {
-  const requiredFiles = [
-    "package.json",
-    "tsconfig.json",
-    "README.md",
-  ];
+  const requiredFiles = ["package.json", "tsconfig.json", "README.md"];
 
   try {
     const existingFiles = getTemplateFiles(type);

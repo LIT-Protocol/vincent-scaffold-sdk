@@ -2,13 +2,13 @@
 
 ## Project Overview
 
-Vincent Scaffold SDK for creating blockchain tools and policies that execute on Lit Actions - a restricted blockchain environment.
+Vincent Scaffold SDK for creating blockchain abilities and policies that execute on Lit Actions - a restricted blockchain environment.
 
 ## 🚨 Critical Execution Constraints
 
 ### Lit Actions Environment
 
-- **NO** `globalThis`, `process.env`, Node.js built-ins in tools/policies
+- **NO** `globalThis`, `process.env`, Node.js built-ins in abilities/policies
 - **NO** persistent memory or file system access
 - **NO** mock/fake data - request proper specifications
 - **laUtils** API only available in specific execution phases
@@ -23,21 +23,21 @@ npx @lit-protocol/vincent-scaffold-sdk init
 
 # Follow prompts for namespace configuration:
 # Package namespace: @company
-# Tool prefix: vincent-tool-
+# Ability prefix: vincent-ability-
 # Policy prefix: vincent-policy-
 ```
 
 ### Component Generation
 
 ```bash
-# Create new tool
-npx @lit-protocol/vincent-scaffold-sdk add tool erc20-transfer
+# Create new ability
+npx @lit-protocol/vincent-scaffold-sdk add ability erc20-transfer
 
 # Create new policy
 npx @lit-protocol/vincent-scaffold-sdk add policy rate-limiter
 
 # Generated structure:
-# vincent-packages/tools/erc20-transfer/
+# vincent-packages/abilities/erc20-transfer/
 # vincent-packages/policies/rate-limiter/
 ```
 
@@ -66,7 +66,7 @@ npx @lit-protocol/vincent-scaffold-sdk pkg clean
 // src/lib/schemas.ts
 import { z } from "zod";
 
-export const toolParamsSchema = z.object({
+export const abilityParamsSchema = z.object({
   to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid address"),
   amount: z
     .string()
@@ -77,7 +77,7 @@ export const toolParamsSchema = z.object({
     .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid token contract"),
 });
 
-export type ToolParams = z.infer<typeof toolParamsSchema>;
+export type AbilityParams = z.infer<typeof abilityParamsSchema>;
 
 // Required result schemas
 export const precheckSuccessSchema = z.object({ validated: z.boolean() });
@@ -90,27 +90,28 @@ export const executeFailSchema = z.object({ error: z.string() });
 
 ## 🏗️ Implementation Patterns
 
-### Tool Implementation (2-phase)
+### Ability Implementation (2-phase)
 
 ```typescript
-// src/lib/vincent-tool.ts
-import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+// src/lib/vincent-ability.ts
+import { createVincentAbility } from "@lit-protocol/vincent-ability-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
-export const vincentTool = createVincentTool({
+export const vincentAbility = createVincentAbility({
   packageName: "{{packageName}}" as const,
-  toolParamsSchema,
+  abilityDescription: "{{abilityDescription}}",
+  abilityParamsSchema,
 
   // Phase 1: Validation (NO laUtils)
-  precheck: async ({ toolParams }, { succeed, fail }) => {
-    if (!toolParams.to.startsWith("0x")) {
+  precheck: async ({ abilityParams }, { succeed, fail }) => {
+    if (!abilityParams.to.startsWith("0x")) {
       return fail({ error: "Invalid address format" });
     }
     return succeed({ validated: true });
   },
 
   // Phase 2: Execution (laUtils available)
-  execute: async ({ toolParams }, { succeed, fail, delegation }) => {
+  execute: async ({ abilityParams }, { succeed, fail, delegation }) => {
     try {
       const provider = new ethers.providers.JsonRpcProvider(
         "https://yellowstone-rpc.litprotocol.com/"
@@ -120,9 +121,9 @@ export const vincentTool = createVincentTool({
         pkpPublicKey: delegation.delegatorPkpInfo.publicKey,
         callerAddress: delegation.delegatorPkpInfo.ethAddress,
         abi: ERC20_ABI,
-        contractAddress: toolParams.tokenAddress,
+        contractAddress: abilityParams.tokenAddress,
         functionName: "transfer",
-        args: [toolParams.to, parseEther(toolParams.amount)],
+        args: [abilityParams.to, parseEther(abilityParams.amount)],
       });
 
       return succeed({ txHash, timestamp: Date.now() });
@@ -141,7 +142,7 @@ export const vincentPolicy = createVincentPolicy({
   packageName: "{{packageName}}" as const,
 
   // Phase 1: Early validation (NO laUtils)
-  precheck: async ({ toolParams, userParams }, { allow, deny }) => {
+  precheck: async ({ abilityParams, userParams }, { allow, deny }) => {
     const currentCount = await checkFromExternalStorage();
     if (currentCount >= userParams.maxTransfers) {
       return deny({ reason: "Limit exceeded", currentCount });
@@ -153,7 +154,7 @@ export const vincentPolicy = createVincentPolicy({
   },
 
   // Phase 2: Runtime evaluation (laUtils available)
-  evaluate: async ({ toolParams, userParams }, { allow, deny }) => {
+  evaluate: async ({ abilityParams, userParams }, { allow, deny }) => {
     const result = await Lit.Actions.runOnce(
       { waitForResponse: true, name: "checkPolicy" },
       async () => validatePolicyConditions(params)
@@ -180,10 +181,10 @@ When adding new components, MUST update root `package.json`:
 
 ```bash
 # Current build script (check package.json)
-"vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/send-counter-limit && npm install && npm run build && cd ../../tools/native-send && npm install && npm run build'"
+"vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/send-counter-limit && npm install && npm run build && cd ../../abilities/native-send && npm install && npm run build'"
 
 # Updated to include new components
-"vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/send-counter-limit && npm install && npm run build && cd ../rate-limiter && npm install && npm run build && cd ../../tools/native-send && npm install && npm run build && cd ../erc20-transfer && npm install && npm run build'"
+"vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/send-counter-limit && npm install && npm run build && cd ../rate-limiter && npm install && npm run build && cd ../../abilities/native-send && npm install && npm run build && cd ../erc20-transfer && npm install && npm run build'"
 ```
 
 ### Verification Commands
@@ -193,7 +194,7 @@ When adding new components, MUST update root `package.json`:
 npm run vincent:build
 
 # Check generated files exist
-ls vincent-packages/tools/*/src/generated/
+ls vincent-packages/abilities/*/src/generated/
 ls vincent-packages/policies/*/src/generated/
 
 # Test integration
@@ -206,12 +207,12 @@ npm run vincent:e2e
 
 ```typescript
 // vincent-e2e/src/e2e.ts - Update imports
-import { bundledVincentTool as erc20Tool } from "../../vincent-packages/tools/erc20-transfer/dist/index.js";
+import { bundledVincentAbility as erc20Ability } from "../../vincent-packages/abilities/erc20-transfer/dist/index.js";
 import { vincentPolicyMetadata as rateLimitPolicy } from "../../vincent-packages/policies/rate-limiter/dist/index.js";
 
 // Configure and test
-const toolConfig = createVincentToolConfig({
-  tool: erc20Tool,
+const abilityConfig = createVincentAbilityConfig({
+  ability: erc20Ability,
   userParams: {
     to: "0x742d35Cc6635C0532925a3b8D400631707BFFfcc",
     amount: "0.001",
@@ -219,8 +220,8 @@ const toolConfig = createVincentToolConfig({
   },
 });
 
-const result = await chainClient.executeTools({
-  tools: [toolConfig],
+const result = await chainClient.executeAbilities({
+  abilities: [abilityConfig],
   policies: [rateLimitPolicy],
 });
 ```
@@ -275,11 +276,11 @@ npm list | grep lit-protocol
 tree vincent-packages/ -I node_modules
 
 # Check template files
-ls src/templates/tool/
+ls src/templates/ability/
 ls src/templates/policy/
 
 # Verify gitignore patterns
-cat vincent-packages/tools/*/.gitignore
+cat vincent-packages/abilities/*/.gitignore
 cat vincent-packages/policies/*/.gitignore
 ```
 
@@ -301,11 +302,11 @@ grep -r "packageName" vincent-packages/*/src/lib/
 ```bash
 # Check for environment variable usage
 grep -r "process\.env" vincent-packages/*/src/lib/
-# Should only appear in build configs, not in tool/policy logic
+# Should only appear in build configs, not in ability/policy logic
 
 # Check for globalThis usage
 grep -r "globalThis" vincent-packages/*/src/lib/
-# Should not appear in tool/policy implementations
+# Should not appear in ability/policy implementations
 
 # Check for mock data
 grep -r "mock\|fake" vincent-packages/*/src/lib/
@@ -356,7 +357,7 @@ npm run vincent:e2e || exit 1
 
 echo "Checking for forbidden patterns..."
 if grep -r "process\.env" vincent-packages/*/src/lib/; then
-  echo "ERROR: Found process.env usage in tool/policy"
+  echo "ERROR: Found process.env usage in ability/policy"
   exit 1
 fi
 
@@ -368,7 +369,7 @@ echo "Validation complete!"
 ```bash
 # Project lifecycle
 npx @lit-protocol/vincent-scaffold-sdk init
-npx @lit-protocol/vincent-scaffold-sdk add tool my-tool
+npx @lit-protocol/vincent-scaffold-sdk add ability my-ability
 npx @lit-protocol/vincent-scaffold-sdk add policy my-policy
 npm run vincent:build
 npm run vincent:e2e
@@ -390,9 +391,9 @@ cat package.json | grep vincent:build
 
 ## 📚 Reference Locations
 
-- Tool example: `vincent-packages/tools/native-send/`
+- Ability example: `vincent-packages/abilities/native-send/`
 - Policy example: `vincent-packages/policies/send-counter-limit/`
-- Templates: `src/templates/tool/` and `src/templates/policy/`
+- Templates: `src/templates/ability/` and `src/templates/policy/`
 - CLI source: `bin/cli.js` and `src/commands/`
 
 Focus on command-line efficiency and automation for Vincent development workflow.

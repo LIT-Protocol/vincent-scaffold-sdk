@@ -2,11 +2,11 @@
 
 ## Quick Start for Gemini
 
-This Vincent Scaffold SDK creates blockchain tools and policies that execute on Lit Actions. As Gemini, focus on TypeScript precision, schema validation, and blockchain integration patterns.
+This Vincent Scaffold SDK creates blockchain abilities and policies that execute on Lit Actions. As Gemini, focus on TypeScript precision, schema validation, and blockchain integration patterns.
 
 ## 🚨 Critical Execution Environment
 
-Vincent tools/policies run in **Lit Actions** - a restricted blockchain environment:
+Vincent abilities/policies run in **Lit Actions** - a restricted blockchain environment:
 
 ```typescript
 // ❌ These will FAIL in Lit Actions:
@@ -31,7 +31,7 @@ Always start with Zod schemas for type safety:
 import { z } from "zod";
 
 // Define input validation
-export const toolParamsSchema = z.object({
+export const abilityParamsSchema = z.object({
   to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address"),
   amount: z.string()
     .regex(/^\d*\.?\d+$/, "Invalid amount format")
@@ -40,7 +40,7 @@ export const toolParamsSchema = z.object({
 });
 
 // Generate types
-export type ToolParams = z.infer<typeof toolParamsSchema>;
+export type AbilityParams = z.infer<typeof abilityParamsSchema>;
 
 // Result schemas for each operation
 export const executeSuccessSchema = z.object({
@@ -50,24 +50,25 @@ export const executeSuccessSchema = z.object({
 });
 ```
 
-### 2. Tool Implementation Pattern
+### 2. Ability Implementation Pattern
 
 ```typescript
-import { createVincentTool } from "@lit-protocol/vincent-tool-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-ability-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
-export const vincentTool = createVincentTool({
+export const vincentAbility = createVincentAbility({
   packageName: "{{packageName}}" as const,
-  toolParamsSchema,
+  abilityDescription: "{{abilityDescription}}",
+  abilityParamsSchema,
   
   // Phase 1: Input validation (NO blockchain access)
-  precheck: async ({ toolParams }, { succeed, fail }) => {
+  precheck: async ({ abilityParams }, { succeed, fail }) => {
     // Pure validation logic
-    if (!isValidEthereumAddress(toolParams.to)) {
+    if (!isValidEthereumAddress(abilityParams.to)) {
       return fail({ error: "Invalid recipient address" });
     }
     
-    if (parseFloat(toolParams.amount) <= 0) {
+    if (parseFloat(abilityParams.amount) <= 0) {
       return fail({ error: "Amount must be positive" });
     }
     
@@ -78,7 +79,7 @@ export const vincentTool = createVincentTool({
   },
 
   // Phase 2: Blockchain execution (laUtils available)
-  execute: async ({ toolParams }, { succeed, fail, delegation }) => {
+  execute: async ({ abilityParams }, { succeed, fail, delegation }) => {
     try {
       // Get blockchain provider
       const provider = new ethers.providers.JsonRpcProvider(
@@ -91,15 +92,15 @@ export const vincentTool = createVincentTool({
         pkpPublicKey: delegation.delegatorPkpInfo.publicKey,
         callerAddress: delegation.delegatorPkpInfo.ethAddress,
         abi: ERC20_ABI,
-        contractAddress: toolParams.tokenAddress,
+        contractAddress: abilityParams.tokenAddress,
         functionName: "transfer",
-        args: [toolParams.to, parseEther(toolParams.amount)]
+        args: [abilityParams.to, parseEther(abilityParams.amount)]
       });
 
       return succeed({
         txHash,
-        to: toolParams.to,
-        amount: toolParams.amount,
+        to: abilityParams.to,
+        amount: abilityParams.amount,
         timestamp: Date.now()
       });
     } catch (error) {
@@ -119,7 +120,7 @@ export const vincentPolicy = createVincentPolicy({
   userParamsSchema,
   
   // Phase 1: Early validation
-  precheck: async ({ toolParams, userParams }, { allow, deny }) => {
+  precheck: async ({ abilityParams, userParams }, { allow, deny }) => {
     const { maxTransfers, timeWindowHours } = userParams;
     
     // Check current usage from external storage
@@ -142,7 +143,7 @@ export const vincentPolicy = createVincentPolicy({
   },
 
   // Phase 2: Runtime evaluation (in Lit Actions)
-  evaluate: async ({ toolParams, userParams }, { allow, deny }) => {
+  evaluate: async ({ abilityParams, userParams }, { allow, deny }) => {
     const result = await Lit.Actions.runOnce(
       { waitForResponse: true, name: "evaluateTransfer" },
       async () => {
@@ -192,8 +193,8 @@ export const vincentPolicy = createVincentPolicy({
 ### Creating New Components
 
 ```bash
-# Create new tool
-npx @lit-protocol/vincent-scaffold-sdk add tool erc20-transfer
+# Create new ability
+npx @lit-protocol/vincent-scaffold-sdk add ability erc20-transfer
 
 # Create new policy  
 npx @lit-protocol/vincent-scaffold-sdk add policy transfer-limits
@@ -206,12 +207,12 @@ npm run vincent:e2e
 ```
 
 ### Build Script Updates
-When adding new tools/policies, update `package.json`:
+When adding new abilities/policies, update `package.json`:
 
 ```json
 {
   "scripts": {
-    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/send-counter-limit && npm install && npm run build && cd ../../tools/native-send && npm install && npm run build && cd ../erc20-transfer && npm install && npm run build'"
+    "vincent:build": "dotenv -e .env -- sh -c 'cd vincent-packages/policies/send-counter-limit && npm install && npm run build && cd ../../abilities/native-send && npm install && npm run build && cd ../erc20-transfer && npm install && npm run build'"
   }
 }
 ```
@@ -220,12 +221,12 @@ When adding new tools/policies, update `package.json`:
 
 ```typescript
 // Import built components
-import { bundledVincentTool as erc20Tool } from "../../vincent-packages/tools/erc20-transfer/dist/index.js";
+import { bundledVincentAbility as erc20Ability } from "../../vincent-packages/abilities/erc20-transfer/dist/index.js";
 import { vincentPolicyMetadata as limitPolicy } from "../../vincent-packages/policies/transfer-limits/dist/index.js";
 
 // Configure for testing
-const toolConfig = createVincentToolConfig({
-  tool: erc20Tool,
+const abilityConfig = createVincentAbilityConfig({
+  ability: erc20Ability,
   userParams: {
     to: "0x742d35Cc6635C0532925a3b8D400631707BFFfcc",
     amount: "0.001",
@@ -234,8 +235,8 @@ const toolConfig = createVincentToolConfig({
 });
 
 // Execute with policy enforcement
-const result = await chainClient.executeTools({
-  tools: [toolConfig],
+const result = await chainClient.executeAbilities({
+  abilities: [abilityConfig],
   policies: [limitPolicy]
 });
 ```
@@ -261,16 +262,16 @@ type EthereumAddress = string & { readonly __brand: unique symbol };
 ### Error Handling
 ```typescript
 // Structured error types
-interface ToolError {
+interface AbilityError {
   readonly code: 'VALIDATION_ERROR' | 'EXECUTION_ERROR' | 'NETWORK_ERROR';
   readonly message: string;
   readonly details?: Record<string, unknown>;
 }
 
 // Error result pattern
-const handleToolExecution = async (): Promise<
+const handleAbilityExecution = async (): Promise<
   { success: true; result: TransferResult } | 
-  { success: false; error: ToolError }
+  { success: false; error: AbilityError }
 > => {
   try {
     const result = await executeTransfer();
@@ -327,22 +328,22 @@ const ethAddress = laUtils.helpers.toEthAddress(publicKey);
 1. **Using laUtils in precheck hooks**
    ```typescript
    // ❌ WRONG - laUtils not available in precheck
-   precheck: async ({ toolParams }, { succeed, fail }) => {
+   precheck: async ({ abilityParams }, { succeed, fail }) => {
      const provider = new ethers.providers.JsonRpcProvider(
   "https://yellowstone-rpc.litprotocol.com/"
 ); // FAILS
    }
    
    // ✅ CORRECT - validation only
-   precheck: async ({ toolParams }, { succeed, fail }) => {
-     if (!isValidAddress(toolParams.to)) return fail({ error: "Invalid address" });
+   precheck: async ({ abilityParams }, { succeed, fail }) => {
+     if (!isValidAddress(abilityParams.to)) return fail({ error: "Invalid address" });
    }
    ```
 
 2. **Forgetting build script updates**
    ```typescript
-   // After creating new tool, MUST update package.json build script
-   // Otherwise new tool won't be compiled
+   // After creating new ability, MUST update package.json build script
+   // Otherwise new ability won't be compiled
    ```
 
 3. **Mock data usage**
@@ -357,10 +358,10 @@ const ethAddress = laUtils.helpers.toEthAddress(publicKey);
 4. **Incorrect import paths**
    ```typescript
    // ❌ WRONG - won't work in E2E tests
-   import { myTool } from "@company/vincent-tool-name";
+   import { myAbility } from "@company/vincent-ability-name";
    
    // ✅ CORRECT - relative path to built output
-   import { bundledVincentTool } from "../../vincent-packages/tools/name/dist/index.js";
+   import { bundledVincentAbility } from "../../vincent-packages/abilities/name/dist/index.js";
    ```
 
 ## 🚀 Quick Reference Commands
@@ -370,7 +371,7 @@ const ethAddress = laUtils.helpers.toEthAddress(publicKey);
 npx @lit-protocol/vincent-scaffold-sdk init
 
 # Add components
-npx @lit-protocol/vincent-scaffold-sdk add tool my-tool
+npx @lit-protocol/vincent-scaffold-sdk add ability my-ability
 npx @lit-protocol/vincent-scaffold-sdk add policy my-policy
 
 # Development cycle
@@ -378,7 +379,7 @@ npm run vincent:build    # Compile all components
 npm run vincent:e2e      # Run integration tests
 npm run vincent:reset    # Reset test state
 
-# From tool/policy directory
+# From ability/policy directory
 npx @lit-protocol/vincent-scaffold-sdk pkg build   # Build current package
 npx @lit-protocol/vincent-scaffold-sdk pkg clean   # Clean dist files
 ```

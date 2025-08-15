@@ -29,7 +29,7 @@ function executeCommand(command, args, options = {}) {
 }
 
 /**
- * Build packages in a directory (policies or tools)
+ * Build packages in a directory (policies or abilities)
  */
 async function buildPackagesInDirectory(baseDir, type) {
   const fullPath = path.resolve(baseDir);
@@ -98,8 +98,8 @@ async function buildPackages() {
     // Build policies
     await buildPackagesInDirectory("vincent-packages/policies", "policy");
 
-    // Build tools
-    await buildPackagesInDirectory("vincent-packages/tools", "tool");
+    // Build abilities
+    await buildPackagesInDirectory("vincent-packages/abilities", "ability");
 
     console.log(chalk.green("✅ All packages built successfully!"));
   } catch (error) {

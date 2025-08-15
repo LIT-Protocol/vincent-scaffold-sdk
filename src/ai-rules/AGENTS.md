@@ -2,13 +2,13 @@
 
 ## Overview
 
-The Vincent Scaffold SDK is a specialized framework for creating **Vincent Tools** and **Vincent Policies** that execute on Lit Actions - a blockchain-based execution environment with strict constraints. This document provides essential guidance for AI agents working with Vincent projects.
+The Vincent Scaffold SDK is a specialized framework for creating **Vincent Abilities** and **Vincent Policies** that execute on Lit Actions - a blockchain-based execution environment with strict constraints. This document provides essential guidance for AI agents working with Vincent projects.
 
 ## 🚨 CRITICAL CONSTRAINTS
 
 ### Lit Actions Environment Limitations
 
-Vincent tools and policies execute in a restricted environment:
+Vincent abilities and policies execute in a restricted environment:
 
 - **❌ NO `globalThis`** - Standard global objects are not available
 - **❌ NO `process.env`** - Environment variables cannot be accessed
@@ -19,22 +19,22 @@ Vincent tools and policies execute in a restricted environment:
 ### Forbidden Patterns
 
 - **NEVER** use mock or fake data in implementations
-- **NEVER** assume environment variables are available in tools/policies
+- **NEVER** assume environment variables are available in abilities/policies
 - **NEVER** rely on persistent state within the execution context
-- **NEVER** use standard Node.js modules in tool/policy logic
+- **NEVER** use standard Node.js modules in ability/policy logic
 
 ## 🏗️ Vincent Architecture
 
 ### Core Components
 
-1. **Vincent Tools** - Executable actions (e.g., token transfers, API calls)
-2. **Vincent Policies** - Governance rules that control tool execution
-3. **Lit Actions** - Secure execution environment for tools/policies
+1. **Vincent Abilities** - Executable actions (e.g., token transfers, API calls)
+2. **Vincent Policies** - Governance rules that control ability execution
+3. **Lit Actions** - Secure execution environment for abilities/policies
 4. **E2E Testing Framework** - Integrated testing with blockchain simulation
 
 ### Three-Phase Execution Model
 
-#### Tools
+#### Abilities
 
 1. **Precheck** - Validate inputs (runs outside Lit Actions)
 2. **Execute** - Perform the operation (runs in Lit Actions)
@@ -52,8 +52,8 @@ Vincent tools and policies execute in a restricted environment:
 All Vincent components MUST use Zod schemas for type safety:
 
 ```typescript
-// Tool parameters
-export const toolParamsSchema = z.object({
+// Ability parameters
+export const abilityParamsSchema = z.object({
   to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid address"),
   amount: z.string().regex(/^\d*\.?\d+$/, "Invalid amount")
 });
@@ -69,7 +69,7 @@ export const executeFailSchema = z.object({...});
 
 - Define schemas BEFORE implementation
 - Use descriptive error messages
-- Export type definitions: `export type ToolParams = z.infer<typeof toolParamsSchema>;`
+- Export type definitions: `export type AbilityParams = z.infer<typeof abilityParamsSchema>;`
 - Validate ALL inputs and outputs
 
 ## 🔧 laUtils API Usage
@@ -79,7 +79,7 @@ export const executeFailSchema = z.object({...});
 This are available in the:
 
 - execute() hook inside the vincent policy
-- evaluate() hook inside the vincent tool
+- evaluate() hook inside the vincent ability
 
 ```typescript
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
@@ -90,7 +90,7 @@ laUtils.helpers.toEthAddress(); // Address utilities
 
 ### Usage Constraints
 
-- **✅ CAN use** in tool `execute` hooks
+- **✅ CAN use** in ability `execute` hooks
 - **✅ CAN use** in policy `evaluate` and `commit` hooks
 - **❌ CANNOT use** in `precheck` hooks (not in Lit Actions context)
 
@@ -100,11 +100,11 @@ laUtils.helpers.toEthAddress(); // Address utilities
 
 ```
 vincent-packages/
-├── tools/
-│   └── my-tool/
+├── abilities/
+│   └── my-ability/
 │       ├── src/lib/
 │       │   ├── schemas.ts
-│       │   ├── vincent-tool.ts
+│       │   ├── vincent-ability.ts
 │       │   └── helpers/index.ts
 │       ├── package.json
 │       └── .gitignore
@@ -120,12 +120,12 @@ vincent-packages/
 
 ## 🛠️ Development Workflow
 
-### Creating New Tools/Policies
+### Creating New Abilities/Policies
 
-1. Use CLI: `npx @lit-protocol/vincent-scaffold-sdk add tool my-tool`
-2. CD into the tool or policy directory
+1. Use CLI: `npx @lit-protocol/vincent-scaffold-sdk add ability my-ability`
+2. CD into the ability or policy directory
 3. Update schemas in `src/lib/schemas.ts`
-4. Implement logic in `src/lib/vincent-tool.ts` or `src/lib/vincent-policy.ts`
+4. Implement logic in `src/lib/vincent-ability.ts` or `src/lib/vincent-policy.ts`
 5. Add helpers in `src/lib/helpers/index.ts` if needed
 6. Update root `package.json` build script
 7. Build: `npm run vincent:build`
@@ -136,13 +136,13 @@ vincent-packages/
 ### E2E Testing Pattern
 
 ```typescript
-// Import built tools/policies
-import { bundledVincentTool } from "../../vincent-packages/tools/my-tool/dist/index.js";
+// Import built abilities/policies
+import { bundledVincentAbility } from "../../vincent-packages/abilities/my-ability/dist/index.js";
 import { vincentPolicyMetadata } from "../../vincent-packages/policies/my-policy/dist/index.js";
 
 // Register and test
-const result = await chainClient.executeTools({
-  tools: [myToolConfig],
+const result = await chainClient.executeAbilities({
+  abilities: [myAbilityConfig],
   // ... test configuration
 });
 ```
@@ -151,7 +151,7 @@ const result = await chainClient.executeTools({
 
 ```bash
 npm run vincent:hardreset         # Reset all state and rebuild
-npm run vincent:build              # Build all tools and policies
+npm run vincent:build              # Build all abilities and policies
 npm run vincent:e2e:reset         # Reset E2E test state only
 npm run vincent:e2e               # Run native transfer E2E tests
 npm run vincent:e2e:erc20         # Run ERC-20 transfer E2E tests
@@ -179,13 +179,13 @@ npm run vincent:e2e:erc20         # Run ERC-20 transfer E2E tests
 - Minimize computation in Lit Actions
 - Use efficient data structures
 - Cache expensive operations when possible
-- Keep tool/policy logic focused and minimal
+- Keep ability/policy logic focused and minimal
 
 ## 🚫 Common Pitfalls
 
 1. **Using forbidden APIs** - Check Lit Actions constraints
 2. **Missing schema validation** - Always validate inputs/outputs
-3. **Forgetting build script updates** - New tools won't build
+3. **Forgetting build script updates** - New abilities won't build
 4. **Incorrect import paths** - Use relative paths to dist/
 5. **Mock data usage** - Never use fake data in implementations
 6. **Environment variable access** - Not available in Lit Actions
@@ -195,10 +195,10 @@ npm run vincent:e2e:erc20         # Run ERC-20 transfer E2E tests
 
 Always refer to existing working examples:
 
-- **Tool example**: `vincent-packages/tools/native-send/`
+- **Ability example**: `vincent-packages/abilities/native-send/`
 - **Policy example**: `vincent-packages/policies/send-counter-limit/`
 - **E2E tests**: `vincent-e2e/src/e2e.ts`
-- **Template files**: `src/templates/tool/` and `src/templates/policy/`
+- **Template files**: `src/templates/ability/` and `src/templates/policy/`
 
 ## 🆘 When You Need Help
 
