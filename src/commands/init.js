@@ -33,7 +33,7 @@ const PACKAGES_CONFIG = {
   "@lit-protocol/vincent-ability-sdk": { version: "*", behavior: "always" },
   "@lit-protocol/vincent-app-sdk": { version: "*", behavior: "always" },
   "@lit-protocol/vincent-scaffold-sdk": {
-    version: "2.0.7-alpha",
+    version: "2.0.8-alpha",
     behavior: "always",
   },
   "@lit-protocol/vincent-contracts-sdk": { version: "*", behavior: "always" },
