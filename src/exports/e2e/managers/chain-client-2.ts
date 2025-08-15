@@ -25,14 +25,11 @@ export interface ChainClient {
     abilityIpfsCids: string[];
     abilityPolicies: string[][];
   }) => Promise<{ appId: number; appVersion: number }>;
-  // registerNextAppVersion: (params: {
-  //   appId: string;
-  //   abilityIpfsCids: string[];
-  //   abilityPolicies: string[][];
-  //   abilityPolicyParameterNames: string[][];
-  //   abilityPolicyParameterTypes: number[][];
-  //   abilityPolicyParameterValues?: string[][];
-  // }) => Promise<{ appId: string; appVersion: string }>;
+  registerNextAppVersion: (params: {
+    appId: number;
+    abilityIpfsCids: string[];
+    abilityPolicies: string[][];
+  }) => Promise<{ appId: number; appVersion: number }>;
   // permitAppVersion: (params: {
   //   pkpTokenId: string;
   //   appId: string;
@@ -62,7 +59,7 @@ export interface ChainClient {
   // }>;
 }
 
-export const createVincentRegisterAppFunction = (
+export const createRegisterAppFunction = (
   stateManager: StateManager,
   contractClient: ContractClient,
   delegateeAccount: { address: string },
@@ -121,72 +118,33 @@ export const createVincentRegisterAppFunction = (
   };
 };
 
-// export const createRegisterNextAppVersionFunction = (
-//   stateManager: StateManager,
-//   appManagerContractsManager: ReturnType<typeof createContractsManager>,
-//   publicViemClientManager: PublicViemClientManager
-// ) => {
-//   return async ({
-//     appId,
-//     abilityIpfsCids,
-//     abilityPolicies,
-//     abilityPolicyParameterNames,
-//     abilityPolicyParameterTypes,
-//     abilityPolicyParameterValues,
-//   }: {
-//     appId: string;
-//     abilityIpfsCids: string[];
-//     abilityPolicies: string[][];
-//     abilityPolicyParameterNames: string[][];
-//     abilityPolicyParameterTypes: number[][];
-//     abilityPolicyParameterValues?: string[][];
-//   }) => {
-//     // Convert 2D arrays to 3D arrays as expected by the smart contract
-//     const { names3D, types3D } = convert2DTo3DArrays(
-//       abilityIpfsCids,
-//       abilityPolicies,
-//       abilityPolicyParameterNames,
-//       abilityPolicyParameterTypes
-//     );
+export const createRegisterNextAppVersionFunction = (
+  contractClient: ContractClient,
+) => {
+  return async ({
+    appId,
+    abilityIpfsCids,
+    abilityPolicies,
+  }: {
+    appId: number;
+    abilityIpfsCids: string[];
+    abilityPolicies: string[][];
+  }) => {
+    const { txHash, newAppVersion } =
+      await contractClient.registerNextVersion({
+        appId,
+        versionAbilities: {
+          abilityIpfsCids,
+          abilityPolicies,
+        },
+      });
 
-//     const versionAbilities = {
-//       abilityIpfsCids,
-//       abilityPolicies,
-//       abilityPolicyParameterNames: names3D,
-//       abilityPolicyParameterTypes: types3D,
-//     };
+    console.log(chalk.green(` Registered Vincent app version: ${appId} v${newAppVersion}`));
+    console.log(chalk.green(`    Transaction: ${txHash}`));
 
-//     const txHash =
-//       // @ts-ignore
-//       await appManagerContractsManager.app.write.registerNextAppVersion([
-//         BigInt(appId),
-//         versionAbilities,
-//       ]);
-//     const txReceipt =
-//       await publicViemClientManager.yellowstone.waitForTransactionReceipt({
-//         hash: txHash,
-//       });
-
-//     const logs = parseEventLogs({
-//       abi: appManagerContractsManager.app.abi,
-//       logs: txReceipt.logs,
-//     });
-
-//     const newAppVersionRegisteredEvent = logs.find(
-//       (log) => log.eventName === "NewAppVersionRegistered"
-//     );
-//     if (!newAppVersionRegisteredEvent || !newAppVersionRegisteredEvent.args) {
-//       throw new Error("Failed to find NewAppVersionRegistered event");
-//     }
-
-//     const appVersion = (newAppVersionRegisteredEvent.args as any).appVersion.toString();
-
-//     console.log(chalk.green(` Registered Vincent app version: ${appId} v${appVersion}`));
-//     console.log(chalk.green(`    Transaction: ${txHash}`));
-
-//     return { appId, appVersion };
-//   };
-// };
+    return { appId, appVersion: newAppVersion };
+  };
+};
 
 // export const createPermitAppVersionFunction = (
 //   stateManager: StateManager,
