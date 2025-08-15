@@ -5,6 +5,7 @@ import { createHash } from "crypto";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { CapacityCreditInfo } from "../utils/mint-cc";
 import { PKPInfo } from "../utils/mint-pkp";
+import { PermissionData } from "@lit-protocol/vincent-contracts-sdk";
 
 interface AccountState {
   privateKey: string;
@@ -31,10 +32,11 @@ interface VincentAppState {
   delegateeAddress: string;
   abilityIpfsCids: string[];
   abilityPolicies: string[][];
+  policyParams: PermissionData;
 }
 
 interface PKPAppPermissionState {
-  pkpTokenId: string;
+  pkpEthAddress: string;
   appId: number;
   appVersion: number;
   permittedAt: string;
@@ -363,6 +365,7 @@ export class StateManager {
     ) => Promise<{ appId: number; appVersion: number }>,
     abilityIpfsCids: string[],
     abilityPolicies: string[][],
+    policyParams: PermissionData,
   ): Promise<{
     appId: number;
     appVersion: number;
@@ -370,6 +373,7 @@ export class StateManager {
     isNewVersion: boolean;
     abilityIpfsCids: string[];
     abilityPolicies: string[][];
+    policyParams: PermissionData;
   }> {
     // First, check if we have any existing app for this delegatee
     const existingApp = this.getExistingVincentApp(delegateeAddress);
@@ -397,6 +401,7 @@ export class StateManager {
           isNewVersion: false,
           abilityIpfsCids,
           abilityPolicies,
+          policyParams,
         };
       } else {
         // Register new version for existing app
@@ -412,6 +417,7 @@ export class StateManager {
           delegateeAddress,
           abilityIpfsCids,
           abilityPolicies,
+          policyParams,
           createdAt: new Date().toISOString(),
           network: this.network,
         };
@@ -431,6 +437,7 @@ export class StateManager {
           isNewVersion: true,
           abilityIpfsCids,
           abilityPolicies,
+          policyParams,
         };
       }
     } else {
@@ -445,6 +452,7 @@ export class StateManager {
         delegateeAddress,
         abilityIpfsCids,
         abilityPolicies,
+        policyParams,
         createdAt: new Date().toISOString(),
         network: this.network,
       };
@@ -464,6 +472,7 @@ export class StateManager {
         delegateeAddress,
         abilityIpfsCids,
         abilityPolicies,
+        policyParams,
       );
 
       return {
@@ -473,6 +482,7 @@ export class StateManager {
         isNewVersion: false,
         abilityIpfsCids,
         abilityPolicies,
+        policyParams,
       };
     }
   }
@@ -993,6 +1003,7 @@ export class StateManager {
     delegateeAddress: string,
     abilityIpfsCids: string[],
     abilityPolicies: string[][],
+    policyParams: PermissionData,
   ): void {
     const configState = this.getCurrentConfigState();
     configState.state.vincentApp = {
@@ -1001,6 +1012,7 @@ export class StateManager {
       delegateeAddress,
       abilityIpfsCids,
       abilityPolicies,
+      policyParams,
       createdAt: new Date().toISOString(),
       network: this.network,
     };
@@ -1097,110 +1109,109 @@ export class StateManager {
   //   };
   // }
 
-  // /**
-  //  * Update existing Vincent app state with parameter values
-  //  */
-  // updateVincentAppParameterValues(
-  //   appId: string,
-  //   abilityPolicyParameterValues: string[][]
-  // ): void {
-  //   const configState = this.getCurrentConfigState();
-  //   if (
-  //     configState.state.vincentApp &&
-  //     configState.state.vincentApp.appId === appId
-  //   ) {
-  //     configState.state.vincentApp.abilityPolicyParameterValues =
-  //       abilityPolicyParameterValues;
-  //     console.log(
-  //       chalk.green(
-  //         `💾 Updated Vincent app parameter values for config ${this.configHash}: ${appId}`
-  //       )
-  //     );
-  //   }
-  // }
+  /**
+   * Update existing Vincent app state with parameter values
+   */
+  updateVincentAppParameterValues(
+    appId: number,
+    policyParams: PermissionData,
+  ): void {
+    const configState = this.getCurrentConfigState();
+    if (
+      configState.state.vincentApp &&
+      configState.state.vincentApp.appId === appId
+    ) {
+      configState.state.vincentApp.policyParams = policyParams;
+      console.log(
+        chalk.green(
+          `💾 Updated Vincent app parameter values for config ${this.configHash}: ${appId}`
+        )
+      );
+    }
+  }
 
-  // /**
-  //  * Check if PKP is already permitted for the given app version
-  //  */
-  // isPKPPermittedForAppVersion(
-  //   pkpTokenId: string,
-  //   appId: string,
-  //   appVersion: string
-  // ): boolean {
-  //   const configState = this.getCurrentConfigState();
-  //   if (!configState.state.pkpAppPermissions) {
-  //     return false;
-  //   }
+  /**
+   * Check if PKP is already permitted for the given app version
+   */
+  isPKPPermittedForAppVersion(
+    pkpEthAddress: string,
+    appId: number,
+    appVersion: number
+  ): boolean {
+    const configState = this.getCurrentConfigState();
+    if (!configState.state.pkpAppPermissions) {
+      return false;
+    }
 
-  //   const existingPermission = configState.state.pkpAppPermissions.find(
-  //     (permission) =>
-  //       permission.pkpTokenId === pkpTokenId &&
-  //       permission.appId === appId &&
-  //       permission.appVersion === appVersion &&
-  //       permission.network === this.network
-  //   );
+    const existingPermission = configState.state.pkpAppPermissions.find(
+      (permission) =>
+        permission.pkpEthAddress === pkpEthAddress &&
+        permission.appId === appId &&
+        permission.appVersion === appVersion &&
+        permission.network === this.network
+    );
 
-  //   if (existingPermission) {
-  //     console.log(
-  //       chalk.blue(
-  //         `🔐 PKP ${pkpTokenId} already permitted for app ${appId} v${appVersion} in config ${this.configHash}`
-  //       )
-  //     );
-  //     console.log(
-  //       chalk.blue(`   ↳ Permitted at: ${existingPermission.permittedAt}`)
-  //     );
-  //     return true;
-  //   }
+    if (existingPermission) {
+      console.log(
+        chalk.blue(
+          `🔐 PKP ${pkpEthAddress} already permitted for app ${appId} v${appVersion} in config ${this.configHash}`
+        )
+      );
+      console.log(
+        chalk.blue(`   ↳ Permitted at: ${existingPermission.permittedAt}`)
+      );
+      return true;
+    }
 
-  //   return false;
-  // }
+    return false;
+  }
 
-  // /**
-  //  * Save PKP app permission to state
-  //  */
-  // savePKPAppPermission(
-  //   pkpTokenId: string,
-  //   appId: string,
-  //   appVersion: string
-  // ): void {
-  //   const configState = this.getCurrentConfigState();
-  //   if (!configState.state.pkpAppPermissions) {
-  //     configState.state.pkpAppPermissions = [];
-  //   }
+  /**
+   * Save PKP app permission to state
+   */
+  savePKPAppPermission(
+    pkpEthAddress: string,
+    appId: number,
+    appVersion: number
+  ): void {
+    const configState = this.getCurrentConfigState();
+    if (!configState.state.pkpAppPermissions) {
+      configState.state.pkpAppPermissions = [];
+    }
 
-  //   // Check if permission already exists to avoid duplicates
-  //   const existingIndex = configState.state.pkpAppPermissions.findIndex(
-  //     (permission) =>
-  //       permission.pkpTokenId === pkpTokenId &&
-  //       permission.appId === appId &&
-  //       permission.appVersion === appVersion &&
-  //       permission.network === this.network
-  //   );
+    // Check if permission already exists to avoid duplicates
+    const existingIndex = configState.state.pkpAppPermissions.findIndex(
+      (permission) =>
+        permission.pkpEthAddress === pkpEthAddress &&
+        permission.appId === appId &&
+        permission.appVersion === appVersion &&
+        permission.network === this.network
+    );
 
-  //   const newPermission: PKPAppPermissionState = {
-  //     pkpTokenId,
-  //     appId,
-  //     appVersion,
-  //     permittedAt: new Date().toISOString(),
-  //     network: this.network,
-  //   };
+    const newPermission: PKPAppPermissionState = {
+      pkpEthAddress,
+      appId,
+      appVersion,
+      permittedAt: new Date().toISOString(),
+      network: this.network,
+    };
 
-  //   if (existingIndex >= 0) {
-  //     // Update existing permission
-  //     configState.state.pkpAppPermissions[existingIndex] = newPermission;
-  //     console.log(
-  //       chalk.gray(
-  //         `💾 Updated PKP app permission for config ${this.configHash}: PKP ${pkpTokenId} for app ${appId} v${appVersion}`
-  //       )
-  //     );
-  //   } else {
-  //     // Add new permission
-  //     configState.state.pkpAppPermissions.push(newPermission);
-  //     console.log(
-  //       chalk.gray(
-  //         `💾 Saved PKP app permission for config ${this.configHash}: PKP ${pkpTokenId} for app ${appId} v${appVersion}`
-  //       )
-  //     );
-  //   }
-  // }
+    if (existingIndex >= 0) {
+      // Update existing permission
+      configState.state.pkpAppPermissions[existingIndex] = newPermission;
+      console.log(
+        chalk.gray(
+          `💾 Updated PKP app permission for config ${this.configHash}: PKP ${pkpEthAddress} for app ${appId} v${appVersion}`
+        )
+      );
+    } else {
+      // Add new permission
+      configState.state.pkpAppPermissions.push(newPermission);
+      console.log(
+        chalk.gray(
+          `💾 Saved PKP app permission for config ${this.configHash}: PKP ${pkpEthAddress} for app ${appId} v${appVersion}`
+        )
+      );
+    }
+  }
 }
