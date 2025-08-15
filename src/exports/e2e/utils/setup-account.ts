@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { formatEther, parseEther } from "viem";
+import { ethers } from "ethers";
 import { StateManager } from "../managers/state-manager";
 
 export async function setupAccount(
@@ -7,10 +7,10 @@ export async function setupAccount(
   accountName: string,
   envPrivateKey: string | undefined,
   stateManager: StateManager,
-  funderWallet: any,
-  publicClient: any,
-  fundAmount: bigint = parseEther("0.01")
-): Promise<{ account: any; address: string; privateKey: `0x${string}` }> {
+  funderWallet: ethers.Wallet,
+  provider: ethers.providers.JsonRpcProvider,
+  fundAmount: ethers.BigNumber = ethers.utils.parseEther("0.01")
+): Promise<{ account: any; address: string; privateKey: string; wallet: ethers.Wallet }> {
   // Get or generate account
   const account = stateManager.getOrGenerateAccount(accountType, envPrivateKey);
 
@@ -21,23 +21,27 @@ export async function setupAccount(
   );
 
   // Check balance
-  const balance = await publicClient.getBalance({ address: account.address });
-  console.log("   ↳ Balance:", formatEther(balance));
+  const balance = await provider.getBalance(account.address);
+  console.log("   ↳ Balance:", ethers.utils.formatEther(balance));
 
   // Fund if new account with zero balance
-  if (account.isNew && balance === 0n) {
+  if (account.isNew && balance.isZero()) {
     console.log(chalk.yellow("   ↳ Funding new account..."));
     const tx = await funderWallet.sendTransaction({
       to: account.address,
       value: fundAmount,
     });
-    await publicClient.waitForTransactionReceipt({ hash: tx });
-    console.log(chalk.green(`   ↳ Funded with ${formatEther(fundAmount)} ETH`));
+    await tx.wait();
+    console.log(chalk.green(`   ↳ Funded with ${ethers.utils.formatEther(fundAmount)} ETH`));
   }
+
+  // Create ethers wallet for this account
+  const wallet = new ethers.Wallet(account.privateKey, provider);
 
   return {
     account,
     address: account.address,
-    privateKey: account.privateKey as `0x${string}`,
+    privateKey: account.privateKey,
+    wallet, // Return the ethers wallet for convenience
   };
 }

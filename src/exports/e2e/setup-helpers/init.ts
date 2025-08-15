@@ -1,24 +1,13 @@
 import { LIT_NETWORK } from "@lit-protocol/constants";
 import { LitContracts } from "@lit-protocol/contracts-sdk";
+import { getClient } from "@lit-protocol/vincent-contracts-sdk";
 import { ethers } from "ethers";
-import {
-  createPublicClient,
-  createWalletClient,
-  formatEther,
-  http,
-  parseEther,
-} from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { BASE_CHAIN, YELLOWSTONE_CHAIN } from "../constants";
 import { STATUS_TO_DEPLOYMENT_STATUS } from "../constants/constants";
-import { createContractsManager, ENV, StateManager } from "../managers";
+import { ENV, StateManager } from "../managers";
 import {
-  ChainClient,
-  createChainClient,
   createPermitAppVersionFunction,
   createRegisterAppFunction,
   createValidateAbilityExecutionFunction,
-  PublicViemClientManager,
 } from "../managers/chain-client";
 import {
   fundPKPIfNeeded,
@@ -31,10 +20,10 @@ import {
 
 export interface InitAccounts {
   funder: {
-    viemWalletClient: ReturnType<typeof createWalletClient>;
+    ethersWallet: ethers.Wallet;
   };
   agentWalletPkpOwner: {
-    viemWalletClient: ReturnType<typeof createWalletClient>;
+    ethersWallet: ethers.Wallet;
     mintAgentWalletPkp: (params: {
       abilityAndPolicyIpfsCids: string[];
     }) => Promise<{
@@ -53,157 +42,106 @@ export interface InitAccounts {
     permitAppVersion: ReturnType<typeof createPermitAppVersionFunction>;
   };
   appManager: {
-    viemWalletClient: ReturnType<typeof createWalletClient>;
+    ethersWallet: ethers.Wallet;
     registerApp: ReturnType<typeof createRegisterAppFunction>;
     validateAbilityExecution: ReturnType<
       typeof createValidateAbilityExecutionFunction
     >;
   };
   delegatee: {
-    ethersWallet: any; // ethers.Wallet type
+    ethersWallet: ethers.Wallet;
   };
 }
 
 export interface InitResult {
-  publicViemClientManager: PublicViemClientManager;
   accounts: InitAccounts;
-  chainClient: ChainClient;
   ethersAccounts: Record<string, never>;
 }
 
-// Helper functions to break down the large init function
-const createPublicClientManager = (): PublicViemClientManager => {
-  return {
-    yellowstone: createPublicClient({
-      chain: YELLOWSTONE_CHAIN,
-      transport: http(ENV.YELLOWSTONE_RPC_URL),
-    }),
-    base: createPublicClient({
-      chain: BASE_CHAIN,
-      transport: http(ENV.BASE_RPC_URL),
-    }),
-  };
-};
-
 const setupFunderWallet = async (
-  publicViemClientManager: PublicViemClientManager
+  provider: ethers.providers.JsonRpcProvider
 ) => {
-  const funderWalletViemWalletClient = createWalletClient({
-    account: privateKeyToAccount(ENV.TEST_FUNDER_PRIVATE_KEY as `0x${string}`),
-    chain: YELLOWSTONE_CHAIN,
-    transport: http(ENV.YELLOWSTONE_RPC_URL),
-  });
+  const funderWallet = new ethers.Wallet(ENV.TEST_FUNDER_PRIVATE_KEY as string, provider);
 
   console.log(
-    "✅ Funder Wallet Viem Wallet Client:",
-    funderWalletViemWalletClient.account.address
+    "✅ Funder Wallet Ethers Wallet:",
+    funderWallet.address
   );
 
-  const funderBalance = await publicViemClientManager.yellowstone.getBalance({
-    address: funderWalletViemWalletClient.account.address,
-  });
-  console.log("   ↳ Balance:", formatEther(funderBalance));
+  const funderBalance = await provider.getBalance(funderWallet.address);
+  console.log("   ↳ Balance:", ethers.utils.formatEther(funderBalance));
 
-  if (funderBalance < parseEther("0.13")) {
+  if (funderBalance.lt(ethers.utils.parseEther("0.13"))) {
     const errorMessage = `❌ Insufficient funder balance. Current balance is below the required 0.13 threshold. Please top up your funder wallet at: https://chronicle-yellowstone-faucet.getlit.dev/`;
     console.log(errorMessage);
     throw new Error(errorMessage);
   }
 
-  return funderWalletViemWalletClient;
+  return funderWallet;
 };
 
 const setupAccountManagers = async (
   stateManager: StateManager,
-  funderWalletViemWalletClient: ReturnType<typeof createWalletClient>,
-  publicViemClientManager: PublicViemClientManager,
+  funderWallet: ethers.Wallet,
+  provider: ethers.providers.JsonRpcProvider,
   network: "datil" | "datil-test" | "datil-dev",
-  appManagerFundAmount: bigint,
-  agentWalletPkpOwnerFundAmount: bigint
+  appManagerFundAmount: ethers.BigNumber,
+  agentWalletPkpOwnerFundAmount: ethers.BigNumber
 ) => {
-  const appManagerAccount = await setupAccount(
+  const appManagerResult = await setupAccount(
     "appManager",
-    "App Manager Viem Wallet Client",
+    "App Manager Ethers Wallet",
     ENV.TEST_APP_MANAGER_PRIVATE_KEY,
     stateManager,
-    funderWalletViemWalletClient,
-    publicViemClientManager.yellowstone,
+    funderWallet,
+    provider,
     appManagerFundAmount
   );
 
-  const appManagerViemWalletClient = createWalletClient({
-    account: privateKeyToAccount(appManagerAccount.privateKey),
-    chain: YELLOWSTONE_CHAIN,
-    transport: http(ENV.YELLOWSTONE_RPC_URL),
-  });
-
-  const agentWalletPkpOwnerAccount = await setupAccount(
+  const agentWalletPkpOwnerResult = await setupAccount(
     "agentWalletPkpOwner",
-    "Agent Wallet PKP Owner Viem Wallet Client",
+    "Agent Wallet PKP Owner Ethers Wallet",
     ENV.TEST_AGENT_WALLET_PKP_OWNER_PRIVATE_KEY,
     stateManager,
-    funderWalletViemWalletClient,
-    publicViemClientManager.yellowstone,
+    funderWallet,
+    provider,
     agentWalletPkpOwnerFundAmount
   );
 
-  const agentWalletPkpOwnerViemWalletClient = createWalletClient({
-    account: privateKeyToAccount(agentWalletPkpOwnerAccount.privateKey),
-    chain: YELLOWSTONE_CHAIN,
-    transport: http(ENV.YELLOWSTONE_RPC_URL),
-  });
-
-  const yellowstoneProvider = new ethers.providers.JsonRpcProvider(
-    ENV.YELLOWSTONE_RPC_URL
-  );
-
-  const agentWalletPkpOwnerEthersWallet = new ethers.Wallet(
-    agentWalletPkpOwnerAccount.privateKey,
-    yellowstoneProvider
-  );
-
   const agentWalletContractsClient = new LitContracts({
-    signer: agentWalletPkpOwnerEthersWallet,
+    signer: agentWalletPkpOwnerResult.wallet,
     network:
       LIT_NETWORK[network as keyof typeof LIT_NETWORK] || LIT_NETWORK.Datil,
   });
   await agentWalletContractsClient.connect();
 
   return {
-    appManagerAccount,
-    appManagerViemWalletClient,
-    agentWalletPkpOwnerAccount,
-    agentWalletPkpOwnerViemWalletClient,
+    appManagerResult,
+    agentWalletPkpOwnerResult,
     agentWalletContractsClient,
   };
 };
 
 const setupDelegateeWallet = async (
   stateManager: StateManager,
-  funderWalletViemWalletClient: ReturnType<typeof createWalletClient>,
-  publicViemClientManager: PublicViemClientManager,
-  delegateeFundAmount: bigint
+  funderWallet: ethers.Wallet,
+  provider: ethers.providers.JsonRpcProvider,
+  delegateeFundAmount: ethers.BigNumber
 ) => {
-  const delegateeAccount = await setupAccount(
+  const delegateeResult = await setupAccount(
     "appDelegatee",
     "Delegatee Ethers wallet",
     ENV.TEST_APP_DELEGATEE_PRIVATE_KEY,
     stateManager,
-    funderWalletViemWalletClient,
-    publicViemClientManager.yellowstone,
+    funderWallet,
+    provider,
     delegateeFundAmount
   );
 
-  const yellowstoneProvider = new ethers.providers.JsonRpcProvider(
-    ENV.YELLOWSTONE_RPC_URL
-  );
-
-  const delegateeEthersWallet = new ethers.Wallet(
-    delegateeAccount.privateKey,
-    yellowstoneProvider
-  );
-
-  return { delegateeAccount, delegateeEthersWallet };
+  return {
+    delegateeAccount: delegateeResult.account,
+    delegateeEthersWallet: delegateeResult.wallet
+  };
 };
 
 export const init = async ({
@@ -223,12 +161,12 @@ export const init = async ({
   deploymentStatus?: "dev" | "staging" | "production";
 }): Promise<InitResult> => {
   const _fundingAmounts = {
-    appManager: parseEther(fundingAmounts?.appManager || "0.001"),
-    agentWalletPkpOwner: parseEther(
+    appManager: ethers.utils.parseEther(fundingAmounts?.appManager || "0.001"),
+    agentWalletPkpOwner: ethers.utils.parseEther(
       fundingAmounts?.agentWalletPkpOwner || "0.01"
     ),
-    delegatee: parseEther(fundingAmounts?.delegatee || "0.001"),
-    pkp: parseEther(fundingAmounts?.pkp || "0.001"),
+    delegatee: ethers.utils.parseEther(fundingAmounts?.delegatee || "0.001"),
+    pkp: ethers.utils.parseEther(fundingAmounts?.pkp || "0.001"),
   };
 
   const _deploymentStatus =
@@ -254,25 +192,19 @@ export const init = async ({
    * Setup all components using helper functions
    * ====================================
    */
-  const publicViemClientManager = createPublicClientManager();
-  console.log(
-    "✅ Public Viem Client Manager: ",
-    Object.keys(publicViemClientManager)
-  );
+  // Create ethers provider for Yellowstone
+  const provider = new ethers.providers.JsonRpcProvider(ENV.YELLOWSTONE_RPC_URL);
 
-  const funderWalletViemWalletClient = await setupFunderWallet(
-    publicViemClientManager
-  );
+  const funderWallet = await setupFunderWallet(provider);
 
   const {
-    appManagerViemWalletClient,
-    agentWalletPkpOwnerAccount,
-    agentWalletPkpOwnerViemWalletClient,
+    appManagerResult,
+    agentWalletPkpOwnerResult,
     agentWalletContractsClient,
   } = await setupAccountManagers(
     stateManager,
-    funderWalletViemWalletClient,
-    publicViemClientManager,
+    funderWallet,
+    provider,
     network,
     _fundingAmounts.appManager,
     _fundingAmounts.agentWalletPkpOwner
@@ -281,25 +213,18 @@ export const init = async ({
   const { delegateeAccount, delegateeEthersWallet } =
     await setupDelegateeWallet(
       stateManager,
-      funderWalletViemWalletClient,
-      publicViemClientManager,
+      funderWallet,
+      provider,
       _fundingAmounts.delegatee
     );
 
   /**
    * ====================================
-   * Create Vincent contracts manager for app management
+   * Create Vincent contracts SDK instances
    * ====================================
    */
-  const appManagerContractsManager = createContractsManager(
-    appManagerViemWalletClient,
-    network
-  );
-
-  const agentWalletPkpOwnerContractsManager = createContractsManager(
-    agentWalletPkpOwnerViemWalletClient,
-    network
-  );
+  const appManagerContractClient = getClient({ signer: appManagerResult.wallet });
+  const agentWalletPkpOwnerContractClient = getClient({ signer: agentWalletPkpOwnerResult.wallet });
 
   /**
    * ====================================
@@ -328,7 +253,7 @@ export const init = async ({
   }) => {
     const { pkp, isNew } = await stateManager.getOrMintPKP(async () => {
       return await mintNewPkp(
-        agentWalletPkpOwnerAccount.privateKey,
+        agentWalletPkpOwnerResult.privateKey,
         network,
         ...abilityAndPolicyIpfsCids
       );
@@ -338,8 +263,8 @@ export const init = async ({
     await fundPKPIfNeeded(
       pkp.ethAddress,
       isNew,
-      funderWalletViemWalletClient,
-      publicViemClientManager.yellowstone,
+      funderWallet,
+      provider,
       _fundingAmounts.pkp
     );
 
@@ -355,13 +280,12 @@ export const init = async ({
   console.log("\n----- (init.ts) Initialisation Completed \n");
 
   return {
-    publicViemClientManager,
     accounts: {
       funder: {
-        viemWalletClient: funderWalletViemWalletClient,
+        ethersWallet: funderWallet,
       },
       agentWalletPkpOwner: {
-        viemWalletClient: agentWalletPkpOwnerViemWalletClient,
+        ethersWallet: agentWalletPkpOwnerResult.wallet,
         mintAgentWalletPkp: mintAgentWalletPkp,
         permittedAuthMethods: async ({
           agentWalletPkp,
@@ -389,43 +313,24 @@ export const init = async ({
         },
         permitAppVersion: createPermitAppVersionFunction(
           stateManager,
-          agentWalletPkpOwnerContractsManager,
-          publicViemClientManager
+          agentWalletPkpOwnerContractClient
         ),
       },
       appManager: {
-        viemWalletClient: appManagerViemWalletClient,
+        ethersWallet: appManagerResult.wallet,
         registerApp: createRegisterAppFunction(
           stateManager,
-          appManagerContractsManager,
-          publicViemClientManager,
-          delegateeAccount,
-          _deploymentStatus
+          appManagerContractClient,
+          delegateeAccount
         ),
         validateAbilityExecution: createValidateAbilityExecutionFunction(
-          appManagerContractsManager
+          appManagerContractClient
         ),
       },
       delegatee: {
         ethersWallet: delegateeEthersWallet,
       },
     },
-
-    // @deprecated - use individual functions instead
-    // eg. appManager.registerApp()
-    // eg. appManager.validateAbilityExecution()
-    // eg. agentWalletPkpOwner.permitAppVersion()
-    chainClient: createChainClient(
-      stateManager,
-      appManagerContractsManager,
-      agentWalletPkpOwnerContractsManager,
-      publicViemClientManager,
-      delegateeAccount,
-      _deploymentStatus
-    ),
     ethersAccounts: {},
   };
 };
-
-// Note: initWithConfig function removed since we now use appId-appVersion for configuration keys
-// The main init() function handles configuration switching automatically during app registration
