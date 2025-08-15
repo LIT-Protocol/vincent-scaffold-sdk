@@ -1,9 +1,6 @@
-import { ContractClient, PermissionData } from "@lit-protocol/vincent-contracts-sdk";
+import { ContractClient, PermissionData, ValidateAbilityExecutionAndGetPoliciesResult } from "@lit-protocol/vincent-contracts-sdk";
 import chalk from "chalk";
-import { parseEventLogs, encodeAbiParameters } from "viem";
 
-import { DEPLOYMENT_STATUS, MOCK_DATA, PARAMETER_TYPE } from "../constants";
-import { createContractsManager } from "./contracts-manager";
 import { StateManager } from "./state-manager-2";
 
 // Type definitions
@@ -36,25 +33,13 @@ export interface ChainClient {
     appVersion: number;
     abilityIpfsCids: string[];
     policyIpfsCids: string[][];
-  }) => Promise<{ txHash: string | null; txReceipt: any; skipped?: boolean }>;
-  // validateAbilityExecution: (params: {
-  //   delegateeAddress: string;
-  //   pkpTokenId: string;
-  //   abilityIpfsCid: string;
-  // }) => Promise<{
-  //   isPermitted: boolean;
-  //   appId: string;
-  //   appVersion: string;
-  //   policies: Array<{
-  //     policyIpfsCid: string;
-  //     parameters: Array<{
-  //       name: string;
-  //       paramType: number;
-  //       value: `0x${string}`;
-  //     }>;
-  //   }>;
-  // }>;
-}
+  }) => Promise<{ txHash: string | null; skipped?: boolean }>;
+  validateAbilityExecution: (params: {
+    delegateeAddress: string;
+    pkpEthAddress: string;
+    abilityIpfsCid: string;
+  }) => Promise<ValidateAbilityExecutionAndGetPoliciesResult>;
+};
 
 export const createRegisterAppFunction = (
   stateManager: StateManager,
@@ -173,7 +158,7 @@ export const createPermitAppVersionFunction = (
           `⏭️  Skipping permitAppVersion - PKP ${pkpEthAddress} already permitted for app ${appId} v${appVersion}`
         )
       );
-      return { txHash: null, txReceipt: null, skipped: true };
+      return { txHash: null, skipped: true };
     }
 
     console.log(chalk.yellow(`= Permitting app version for PKP...`));
@@ -208,88 +193,39 @@ export const createPermitAppVersionFunction = (
   };
 };
 
-// export const createValidateAbilityExecutionFunction = (
-//   appManagerContractsManager: ReturnType<typeof createContractsManager>
-// ) => {
-//   return async ({
-//     delegateeAddress,
-//     pkpTokenId,
-//     abilityIpfsCid,
-//   }: {
-//     delegateeAddress: string;
-//     pkpTokenId: string;
-//     abilityIpfsCid: string;
-//   }) => {
-//     console.log(
-//       chalk.blue(`=
-//  Validating ability execution permissions...`)
-//     );
+export const createValidateAbilityExecutionFunction = (
+  contractClient: ContractClient,
+) => {
+  return async ({
+    delegateeAddress,
+    pkpEthAddress,
+    abilityIpfsCid,
+  }: {
+    delegateeAddress: string;
+    pkpEthAddress: string;
+    abilityIpfsCid: string;
+  }) => {
+    console.log(
+      chalk.blue(`=
+ Validating ability execution permissions...`)
+    );
 
-//     const validationResult =
-//       (await appManagerContractsManager.userView.read.validateAbilityExecutionAndGetPolicies(
-//         [delegateeAddress as `0x${string}`, BigInt(pkpTokenId), abilityIpfsCid]
-//       )) as {
-//         isPermitted: boolean;
-//         appId: bigint;
-//         appVersion: bigint;
-//         policies: Array<{
-//           policyIpfsCid: string;
-//           parameters: Array<{
-//             name: string;
-//             paramType: number;
-//             value: `0x${string}`;
-//           }>;
-//         }>;
-//       };
+    const validationResult = await contractClient.validateAbilityExecutionAndGetPolicies({
+      delegateeAddress,
+      pkpEthAddress,
+      abilityIpfsCid,
+    });
 
-//     console.log(
-//       chalk.blue(`   - Is Permitted: ${validationResult.isPermitted}`)
-//     );
-//     console.log(
-//       chalk.blue(`   - App ID: ${validationResult.appId.toString()}`)
-//     );
-//     console.log(
-//       chalk.blue(`   - App Version: ${validationResult.appVersion.toString()}`)
-//     );
+    console.log(
+      chalk.blue(`   - Is Permitted: ${validationResult.isPermitted}`)
+    );
+    console.log(
+      chalk.blue(`   - App ID: ${validationResult.appId}`)
+    );
+    console.log(
+      chalk.blue(`   - App Version: ${validationResult.appVersion}`)
+    );
 
-//     // Convert BigInt values to strings for JSON serialization
-//     return {
-//       ...validationResult,
-//       appId: validationResult.appId.toString(),
-//       appVersion: validationResult.appVersion.toString(),
-//     };
-//   };
-// };
-
-// export const createChainClient = (
-//   stateManager: StateManager,
-//   appManagerContractsManager: ReturnType<typeof createContractsManager>,
-//   agentWalletPkpOwnerContractsManager: ReturnType<
-//     typeof createContractsManager
-//   >,
-//   publicViemClientManager: PublicViemClientManager,
-//   delegateeAccount: { address: string },
-//   deploymentStatus: number
-// ): ChainClient => {
-//   return {
-//     registerApp: createRegisterAppFunction(
-//       stateManager,
-//       appManagerContractsManager,
-//       publicViemClientManager,
-//       delegateeAccount,
-//       deploymentStatus
-//     ),
-//     registerNextAppVersion: createRegisterNextAppVersionFunction(
-//       stateManager,
-//       appManagerContractsManager,
-//       publicViemClientManager
-//     ),
-//     permitAppVersion: createPermitAppVersionFunction(
-//       stateManager,
-//       agentWalletPkpOwnerContractsManager,
-//       publicViemClientManager
-//     ),
-//     validateAbilityExecution: createValidateAbilityExecutionFunction(
-//       appManagerContractsManager
-//     ),
-//   };
+    return validationResult;
+  };
+};

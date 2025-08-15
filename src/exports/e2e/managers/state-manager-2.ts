@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { promises as fs } from "fs";
 import path from "path";
 import { createHash } from "crypto";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { ethers } from "ethers";
 import { CapacityCreditInfo } from "../utils/mint-cc";
 import { PKPInfo } from "../utils/mint-pkp";
 import { PermissionData } from "@lit-protocol/vincent-contracts-sdk";
@@ -166,22 +166,22 @@ export class StateManager {
     return hash;
   }
 
-  // /**
-  //  * Auto-detect test filename from call stack
-  //  */
-  // static autoDetectTestFileName(): string {
-  //   const stack = new Error().stack;
-  //   if (!stack) return "unknown-test.ts";
+  /**
+   * Auto-detect test filename from call stack
+   */
+  static autoDetectTestFileName(): string {
+    const stack = new Error().stack;
+    if (!stack) return "unknown-test.ts";
 
-  //   const stackLines = stack.split("\n");
-  //   for (const line of stackLines) {
-  //     const match = line.match(/\/([^\/\s]+\.ts):/);
-  //     if (match && match[1] !== "state-manager.ts" && match[1] !== "init.ts") {
-  //       return match[1];
-  //     }
-  //   }
-  //   return "unknown-test.ts";
-  // }
+    const stackLines = stack.split("\n");
+    for (const line of stackLines) {
+      const match = line.match(/\/([^\/\s]+\.ts):/);
+      if (match && match[1] !== "state-manager.ts" && match[1] !== "init.ts") {
+        return match[1];
+      }
+    }
+    return "unknown-test.ts";
+  }
 
   /**
    * Get current configuration state, creating if needed
@@ -529,36 +529,36 @@ export class StateManager {
     return undefined;
   }
 
-  // async loadState(): Promise<void> {
-  //   try {
-  //     const data = await fs.readFile(STATE_FILE_PATH, "utf-8");
-  //     const loadedState = JSON.parse(data);
+  async loadState(): Promise<void> {
+    try {
+      const data = await fs.readFile(STATE_FILE_PATH, "utf-8");
+      const loadedState = JSON.parse(data);
 
-  //     // Validate version compatibility
-  //     if (loadedState.version !== STATE_VERSION) {
-  //       console.warn(
-  //         chalk.yellow(
-  //           `⚠️  State file version mismatch. Expected ${STATE_VERSION}, got ${loadedState.version}. Creating new state.`
-  //         )
-  //       );
-  //       return;
-  //     }
+      // Validate version compatibility
+      if (loadedState.version !== STATE_VERSION) {
+        console.warn(
+          chalk.yellow(
+            `⚠️  State file version mismatch. Expected ${STATE_VERSION}, got ${loadedState.version}. Creating new state.`
+          )
+        );
+        return;
+      }
 
-  //     this.nestedState = loadedState;
-  //     this.currentConfigState = this.getCurrentConfigState();
-  //     console.log(
-  //       chalk.blue(
-  //         `📁 Loaded existing state for ${this.testFileName}:${this.configHash}`
-  //       )
-  //     );
-  //   } catch (error) {
-  //     // File doesn't exist or is invalid - that's ok, we'll create it
-  //     console.log(
-  //       chalk.blue("📝 No existing state file found. Will create one.")
-  //     );
-  //     this.currentConfigState = this.getCurrentConfigState();
-  //   }
-  // }
+      this.nestedState = loadedState;
+      this.currentConfigState = this.getCurrentConfigState();
+      console.log(
+        chalk.blue(
+          `📁 Loaded existing state for ${this.testFileName}:${this.configHash}`
+        )
+      );
+    } catch (error) {
+      // File doesn't exist or is invalid - that's ok, we'll create it
+      console.log(
+        chalk.blue("📝 No existing state file found. Will create one.")
+      );
+      this.currentConfigState = this.getCurrentConfigState();
+    }
+  }
 
   async saveState(): Promise<void> {
     try {
@@ -581,94 +581,90 @@ export class StateManager {
     }
   }
 
-  // generateAccount(): AccountState {
-  //   const privateKey = generatePrivateKey();
-  //   const address = privateKeyToAccount(privateKey).address;
+  generateAccount(): AccountState {
+    const wallet = ethers.Wallet.createRandom();
+    return {
+      privateKey: wallet.privateKey,
+      address: wallet.address,
+      createdAt: new Date().toISOString(),
+      network: this.network,
+    };
+  }
 
-  //   return {
-  //     privateKey,
-  //     address,
-  //     createdAt: new Date().toISOString(),
-  //     network: this.network,
-  //   };
-  // }
+  getOrGenerateAccount(
+    accountType: "appManager" | "appDelegatee" | "agentWalletPkpOwner",
+    existingPrivateKey?: string
+  ): { privateKey: string; address: string; isNew: boolean } {
+    // If private key provided from env, use it
+    if (existingPrivateKey) {
+      const wallet = new ethers.Wallet(existingPrivateKey);
+      return {
+        privateKey: existingPrivateKey,
+        address: wallet.address,
+        isNew: false,
+      };
+    }
 
-  // getOrGenerateAccount(
-  //   accountType: "appManager" | "appDelegatee" | "agentWalletPkpOwner",
-  //   existingPrivateKey?: string
-  // ): { privateKey: string; address: string; isNew: boolean } {
-  //   // If private key provided from env, use it
-  //   if (existingPrivateKey) {
-  //     const address = privateKeyToAccount(
-  //       existingPrivateKey as `0x${string}`
-  //     ).address;
-  //     return {
-  //       privateKey: existingPrivateKey,
-  //       address,
-  //       isNew: false,
-  //     };
-  //   }
+    // Ensure current config state is initialized (which initializes accounts structure)
+    this.getCurrentConfigState();
 
-  //   // Ensure current config state is initialized (which initializes accounts structure)
-  //   this.getCurrentConfigState();
+    // Get accounts for this test file and network
+    const testFileAccounts =
+      this.nestedState.testFiles[this.testFileName].accounts!;
 
-  //   // Get accounts for this test file and network
-  //   const testFileAccounts =
-  //     this.nestedState.testFiles[this.testFileName].accounts!;
+    // Ensure network accounts exist for this test file
+    if (!testFileAccounts[this.network]) {
+      testFileAccounts[this.network] = {};
+    }
 
-  //   // Ensure network accounts exist for this test file
-  //   if (!testFileAccounts[this.network]) {
-  //     testFileAccounts[this.network] = {};
-  //   }
+    // Check if we have a saved account for this type in this test file
+    const savedAccount = testFileAccounts[this.network][accountType];
 
-  //   // Check if we have a saved account for this type in this test file
-  //   const savedAccount = testFileAccounts[this.network][accountType];
+    if (savedAccount && savedAccount.network === this.network) {
+      console.log(
+        chalk.blue(
+          `🔑 Using ${accountType} from ${this.testFileName}: ${savedAccount.address}`
+        )
+      );
+      return {
+        privateKey: savedAccount.privateKey,
+        address: savedAccount.address,
+        isNew: false,
+      };
+    }
 
-  //   if (savedAccount && savedAccount.network === this.network) {
-  //     console.log(
-  //       chalk.blue(
-  //         `🔑 Using ${accountType} from ${this.testFileName}: ${savedAccount.address}`
-  //       )
-  //     );
-  //     return {
-  //       privateKey: savedAccount.privateKey,
-  //       address: savedAccount.address,
-  //       isNew: false,
-  //     };
-  //   }
+    // Check for legacy shared account and migrate if exists
+    const legacyAccount =
+      this.nestedState.sharedAccounts?.[this.network]?.[accountType];
+    if (legacyAccount && legacyAccount.network === this.network) {
+      console.log(
+        chalk.blue(
+          `🔄 Migrating shared ${accountType} to ${this.testFileName}: ${legacyAccount.address}`
+        )
+      );
+      testFileAccounts[this.network][accountType] = legacyAccount;
+      return {
+        privateKey: legacyAccount.privateKey,
+        address: legacyAccount.address,
+        isNew: false,
+      };
+    }
 
-  //   // Check for legacy shared account and migrate if exists
-  //   const legacyAccount =
-  //     this.nestedState.sharedAccounts?.[this.network]?.[accountType];
-  //   if (legacyAccount && legacyAccount.network === this.network) {
-  //     console.log(
-  //       chalk.blue(
-  //         `🔄 Migrating shared ${accountType} to ${this.testFileName}: ${legacyAccount.address}`
-  //       )
-  //     );
-  //     testFileAccounts[this.network][accountType] = legacyAccount;
-  //     return {
-  //       privateKey: legacyAccount.privateKey,
-  //       address: legacyAccount.address,
-  //       isNew: false,
-  //     };
-  //   }
+    // Generate new account for this test file
+    console.log(
+      chalk.yellow(
+        `🔑 Generating new ${accountType} account for ${this.testFileName}`
+      )
+    );
+    const newAccount = this.generateAccount();
+    testFileAccounts[this.network][accountType] = newAccount;
 
-  //   // Generate new account for this test file
-  //   console.log(
-  //     chalk.yellow(
-  //       `🔑 Generating new ${accountType} account for ${this.testFileName}`
-  //     )
-  //   );
-  //   const newAccount = this.generateAccount();
-  //   testFileAccounts[this.network][accountType] = newAccount;
-
-  //   return {
-  //     privateKey: newAccount.privateKey,
-  //     address: newAccount.address,
-  //     isNew: true,
-  //   };
-  // }
+    return {
+      privateKey: newAccount.privateKey,
+      address: newAccount.address,
+      isNew: true,
+    };
+  }
 
   // getGeneratedAccounts(): string[] {
   //   // Get accounts for this test file
@@ -688,240 +684,240 @@ export class StateManager {
   //     .map(([type, account]) => `${type}: ${account!.address}`);
   // }
 
-  // /**
-  //  * Get existing PKP or return undefined if needs minting
-  //  */
-  // getExistingPKP(): PKPState | undefined {
-  //   // Ensure current config state is initialized
-  //   this.getCurrentConfigState();
+  /**
+   * Get existing PKP or return undefined if needs minting
+   */
+  getExistingPKP(): PKPState | undefined {
+    // Ensure current config state is initialized
+    this.getCurrentConfigState();
 
-  //   // Get PKP for this test file and network
-  //   const testFilePkps = this.nestedState.testFiles[this.testFileName].pkps!;
-  //   const existingPkp = testFilePkps[this.network];
+    // Get PKP for this test file and network
+    const testFilePkps = this.nestedState.testFiles[this.testFileName].pkps!;
+    const existingPkp = testFilePkps[this.network];
 
-  //   if (existingPkp && existingPkp.network === this.network) {
-  //     console.log(
-  //       chalk.blue(
-  //         `🔑 Using PKP from ${this.testFileName}: ${existingPkp.ethAddress}`
-  //       )
-  //     );
-  //     return existingPkp;
-  //   }
+    if (existingPkp && existingPkp.network === this.network) {
+      console.log(
+        chalk.blue(
+          `🔑 Using PKP from ${this.testFileName}: ${existingPkp.ethAddress}`
+        )
+      );
+      return existingPkp;
+    }
 
-  //   // Check for legacy shared PKP and migrate if exists
-  //   const legacyPkp = this.nestedState.sharedPkps?.[this.network];
-  //   if (legacyPkp && legacyPkp.network === this.network) {
-  //     console.log(
-  //       chalk.blue(
-  //         `🔄 Migrating shared PKP to ${this.testFileName}: ${legacyPkp.ethAddress}`
-  //       )
-  //     );
-  //     testFilePkps[this.network] = legacyPkp;
-  //     return legacyPkp;
-  //   }
+    // Check for legacy shared PKP and migrate if exists
+    const legacyPkp = this.nestedState.sharedPkps?.[this.network];
+    if (legacyPkp && legacyPkp.network === this.network) {
+      console.log(
+        chalk.blue(
+          `🔄 Migrating shared PKP to ${this.testFileName}: ${legacyPkp.ethAddress}`
+        )
+      );
+      testFilePkps[this.network] = legacyPkp;
+      return legacyPkp;
+    }
 
-  //   return undefined;
-  // }
+    return undefined;
+  }
 
-  // /**
-  //  * Save a newly minted PKP to state
-  //  */
-  // savePKP(pkpInfo: PKPInfo): void {
-  //   // Ensure current config state is initialized
-  //   this.getCurrentConfigState();
+  /**
+   * Save a newly minted PKP to state
+   */
+  savePKP(pkpInfo: PKPInfo): void {
+    // Ensure current config state is initialized
+    this.getCurrentConfigState();
 
-  //   // Save PKP for this test file and network
-  //   const testFilePkps = this.nestedState.testFiles[this.testFileName].pkps!;
-  //   testFilePkps[this.network] = {
-  //     ...pkpInfo,
-  //     createdAt: new Date().toISOString(),
-  //     network: this.network,
-  //   };
+    // Save PKP for this test file and network
+    const testFilePkps = this.nestedState.testFiles[this.testFileName].pkps!;
+    testFilePkps[this.network] = {
+      ...pkpInfo,
+      createdAt: new Date().toISOString(),
+      network: this.network,
+    };
 
-  //   console.log(
-  //     chalk.gray(`💾 Saved PKP for ${this.testFileName}: ${pkpInfo.ethAddress}`)
-  //   );
-  // }
+    console.log(
+      chalk.gray(`💾 Saved PKP for ${this.testFileName}: ${pkpInfo.ethAddress}`)
+    );
+  }
 
-  // /**
-  //  * Get or mint the single testing PKP
-  //  */
-  // async getOrMintPKP(
-  //   mintFunction: () => Promise<PKPInfo>
-  // ): Promise<{ pkp: PKPInfo; isNew: boolean }> {
-  //   // Check if we have an existing PKP
-  //   const existingPKP = this.getExistingPKP();
-  //   if (existingPKP) {
-  //     return {
-  //       pkp: {
-  //         tokenId: existingPKP.tokenId,
-  //         publicKey: existingPKP.publicKey,
-  //         ethAddress: existingPKP.ethAddress,
-  //       },
-  //       isNew: false,
-  //     };
-  //   }
+  /**
+   * Get or mint the single testing PKP
+   */
+  async getOrMintPKP(
+    mintFunction: () => Promise<PKPInfo>
+  ): Promise<{ pkp: PKPInfo; isNew: boolean }> {
+    // Check if we have an existing PKP
+    const existingPKP = this.getExistingPKP();
+    if (existingPKP) {
+      return {
+        pkp: {
+          tokenId: existingPKP.tokenId,
+          publicKey: existingPKP.publicKey,
+          ethAddress: existingPKP.ethAddress,
+        },
+        isNew: false,
+      };
+    }
 
-  //   // Mint new PKP
-  //   console.log(chalk.yellow(`🔨 Minting new testing PKP...`));
-  //   const newPKP = await mintFunction();
+    // Mint new PKP
+    console.log(chalk.yellow(`🔨 Minting new testing PKP...`));
+    const newPKP = await mintFunction();
 
-  //   // Save to state
-  //   this.savePKP(newPKP);
+    // Save to state
+    this.savePKP(newPKP);
 
-  //   return {
-  //     pkp: newPKP,
-  //     isNew: true,
-  //   };
-  // }
+    return {
+      pkp: newPKP,
+      isNew: true,
+    };
+  }
 
-  // /**
-  //  * Check if capacity credits are still valid (not expired within 1 day)
-  //  */
-  // private isCapacityCreditValid(capacityCredit: CapacityCreditState): boolean {
-  //   const expirationDate = new Date(capacityCredit.expiresAt);
-  //   const now = new Date();
-  //   const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  /**
+   * Check if capacity credits are still valid (not expired within 1 day)
+   */
+  private isCapacityCreditValid(capacityCredit: CapacityCreditState): boolean {
+    const expirationDate = new Date(capacityCredit.expiresAt);
+    const now = new Date();
+    const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-  //   // Consider expired if it expires within the next 24 hours
-  //   const isValid = expirationDate > oneDayFromNow;
+    // Consider expired if it expires within the next 24 hours
+    const isValid = expirationDate > oneDayFromNow;
 
-  //   // Add helpful logging when expired/expiring
-  //   if (!isValid) {
-  //     console.log(
-  //       chalk.yellow(
-  //         `   ↳ Capacity credits expire at: ${expirationDate.toISOString()}`
-  //       )
-  //     );
-  //     console.log(chalk.yellow(`   ↳ Current time: ${now.toISOString()}`));
-  //   }
+    // Add helpful logging when expired/expiring
+    if (!isValid) {
+      console.log(
+        chalk.yellow(
+          `   ↳ Capacity credits expire at: ${expirationDate.toISOString()}`
+        )
+      );
+      console.log(chalk.yellow(`   ↳ Current time: ${now.toISOString()}`));
+    }
 
-  //   return isValid;
-  // }
+    return isValid;
+  }
 
-  // /**
-  //  * Get existing capacity credits or return undefined if needs minting
-  //  */
-  // getExistingCapacityCredits(): CapacityCreditState | undefined {
-  //   // Ensure current config state is initialized
-  //   this.getCurrentConfigState();
+  /**
+   * Get existing capacity credits or return undefined if needs minting
+   */
+  getExistingCapacityCredits(): CapacityCreditState | undefined {
+    // Ensure current config state is initialized
+    this.getCurrentConfigState();
 
-  //   // Get capacity credits for this test file and network
-  //   const testFileCC =
-  //     this.nestedState.testFiles[this.testFileName].capacityCredits!;
-  //   const existingCC = testFileCC[this.network];
+    // Get capacity credits for this test file and network
+    const testFileCC =
+      this.nestedState.testFiles[this.testFileName].capacityCredits!;
+    const existingCC = testFileCC[this.network];
 
-  //   if (existingCC && existingCC.network === this.network) {
-  //     if (this.isCapacityCreditValid(existingCC)) {
-  //       console.log(
-  //         chalk.blue(
-  //           `🎫 Using capacity credits from ${this.testFileName}: ${existingCC.capacityTokenIdStr}`
-  //         )
-  //       );
-  //       console.log(chalk.blue(`   ↳ Expires: ${existingCC.expiresAt}`));
-  //       return existingCC;
-  //     } else {
-  //       console.log(
-  //         chalk.yellow(
-  //           `⚠️  Capacity credits found but expired/expiring soon for ${this.testFileName}`
-  //         )
-  //       );
-  //       console.log(
-  //         chalk.yellow(`   ↳ Token ID: ${existingCC.capacityTokenIdStr}`)
-  //       );
-  //     }
-  //   }
+    if (existingCC && existingCC.network === this.network) {
+      if (this.isCapacityCreditValid(existingCC)) {
+        console.log(
+          chalk.blue(
+            `🎫 Using capacity credits from ${this.testFileName}: ${existingCC.capacityTokenIdStr}`
+          )
+        );
+        console.log(chalk.blue(`   ↳ Expires: ${existingCC.expiresAt}`));
+        return existingCC;
+      } else {
+        console.log(
+          chalk.yellow(
+            `⚠️  Capacity credits found but expired/expiring soon for ${this.testFileName}`
+          )
+        );
+        console.log(
+          chalk.yellow(`   ↳ Token ID: ${existingCC.capacityTokenIdStr}`)
+        );
+      }
+    }
 
-  //   // Check for legacy shared capacity credits and migrate if exists
-  //   const legacyCC = this.nestedState.sharedCapacityCredits?.[this.network];
-  //   if (legacyCC && legacyCC.network === this.network) {
-  //     if (this.isCapacityCreditValid(legacyCC)) {
-  //       console.log(
-  //         chalk.blue(
-  //           `🔄 Migrating shared capacity credits to ${this.testFileName}: ${legacyCC.capacityTokenIdStr}`
-  //         )
-  //       );
-  //       testFileCC[this.network] = legacyCC;
-  //       return legacyCC;
-  //     }
-  //   }
+    // Check for legacy shared capacity credits and migrate if exists
+    const legacyCC = this.nestedState.sharedCapacityCredits?.[this.network];
+    if (legacyCC && legacyCC.network === this.network) {
+      if (this.isCapacityCreditValid(legacyCC)) {
+        console.log(
+          chalk.blue(
+            `🔄 Migrating shared capacity credits to ${this.testFileName}: ${legacyCC.capacityTokenIdStr}`
+          )
+        );
+        testFileCC[this.network] = legacyCC;
+        return legacyCC;
+      }
+    }
 
-  //   return undefined;
-  // }
+    return undefined;
+  }
 
-  // /**
-  //  * Save newly minted capacity credits to state
-  //  */
-  // saveCapacityCredits(capacityCreditInfo: CapacityCreditInfo): void {
-  //   // Calculate expiration date using the same logic as mint-cc.ts
-  //   const mintedDate = new Date(capacityCreditInfo.mintedAtUtc);
-  //   const expirationDate = new Date(
-  //     Date.UTC(
-  //       mintedDate.getUTCFullYear(),
-  //       mintedDate.getUTCMonth(),
-  //       mintedDate.getUTCDate() +
-  //       capacityCreditInfo.daysUntilUTCMidnightExpiration,
-  //       0,
-  //       0,
-  //       0,
-  //       0
-  //     )
-  //   );
+  /**
+   * Save newly minted capacity credits to state
+   */
+  saveCapacityCredits(capacityCreditInfo: CapacityCreditInfo): void {
+    // Calculate expiration date using the same logic as mint-cc.ts
+    const mintedDate = new Date(capacityCreditInfo.mintedAtUtc);
+    const expirationDate = new Date(
+      Date.UTC(
+        mintedDate.getUTCFullYear(),
+        mintedDate.getUTCMonth(),
+        mintedDate.getUTCDate() +
+        capacityCreditInfo.daysUntilUTCMidnightExpiration,
+        0,
+        0,
+        0,
+        0
+      )
+    );
 
-  //   // Ensure current config state is initialized
-  //   this.getCurrentConfigState();
+    // Ensure current config state is initialized
+    this.getCurrentConfigState();
 
-  //   // Save capacity credits for this test file and network
-  //   const testFileCC =
-  //     this.nestedState.testFiles[this.testFileName].capacityCredits!;
-  //   testFileCC[this.network] = {
-  //     ...capacityCreditInfo,
-  //     network: this.network,
-  //     expiresAt: expirationDate.toISOString(),
-  //   };
+    // Save capacity credits for this test file and network
+    const testFileCC =
+      this.nestedState.testFiles[this.testFileName].capacityCredits!;
+    testFileCC[this.network] = {
+      ...capacityCreditInfo,
+      network: this.network,
+      expiresAt: expirationDate.toISOString(),
+    };
 
-  //   console.log(
-  //     chalk.green(
-  //       `💾 Saved capacity credits for ${this.testFileName}: ${capacityCreditInfo.capacityTokenIdStr}`
-  //     )
-  //   );
-  //   console.log(chalk.green(`   ↳ Expires: ${expirationDate.toISOString()}`));
-  // }
+    console.log(
+      chalk.green(
+        `💾 Saved capacity credits for ${this.testFileName}: ${capacityCreditInfo.capacityTokenIdStr}`
+      )
+    );
+    console.log(chalk.green(`   ↳ Expires: ${expirationDate.toISOString()}`));
+  }
 
-  // /**
-  //  * Get or mint capacity credits for testing
-  //  */
-  // async getOrMintCapacityCredits(
-  //   mintFunction: () => Promise<CapacityCreditInfo>
-  // ): Promise<{ capacityCredits: CapacityCreditInfo; isNew: boolean }> {
-  //   // Check if we have existing valid capacity credits
-  //   const existingCC = this.getExistingCapacityCredits();
-  //   if (existingCC) {
-  //     return {
-  //       capacityCredits: {
-  //         capacityTokenIdStr: existingCC.capacityTokenIdStr,
-  //         capacityTokenId: existingCC.capacityTokenId,
-  //         requestsPerKilosecond: existingCC.requestsPerKilosecond,
-  //         daysUntilUTCMidnightExpiration:
-  //           existingCC.daysUntilUTCMidnightExpiration,
-  //         mintedAtUtc: existingCC.mintedAtUtc,
-  //       },
-  //       isNew: false,
-  //     };
-  //   }
+  /**
+   * Get or mint capacity credits for testing
+   */
+  async getOrMintCapacityCredits(
+    mintFunction: () => Promise<CapacityCreditInfo>
+  ): Promise<{ capacityCredits: CapacityCreditInfo; isNew: boolean }> {
+    // Check if we have existing valid capacity credits
+    const existingCC = this.getExistingCapacityCredits();
+    if (existingCC) {
+      return {
+        capacityCredits: {
+          capacityTokenIdStr: existingCC.capacityTokenIdStr,
+          capacityTokenId: existingCC.capacityTokenId,
+          requestsPerKilosecond: existingCC.requestsPerKilosecond,
+          daysUntilUTCMidnightExpiration:
+            existingCC.daysUntilUTCMidnightExpiration,
+          mintedAtUtc: existingCC.mintedAtUtc,
+        },
+        isNew: false,
+      };
+    }
 
-  //   // Mint new capacity credits
-  //   console.log(chalk.yellow(`🎫 Minting new capacity credits...`));
-  //   const newCC = await mintFunction();
+    // Mint new capacity credits
+    console.log(chalk.yellow(`🎫 Minting new capacity credits...`));
+    const newCC = await mintFunction();
 
-  //   // Save to state
-  //   this.saveCapacityCredits(newCC);
+    // Save to state
+    this.saveCapacityCredits(newCC);
 
-  //   return {
-  //     capacityCredits: newCC,
-  //     isNew: true,
-  //   };
-  // }
+    return {
+      capacityCredits: newCC,
+      isNew: true,
+    };
+  }
 
   /**
    * Get existing Vincent app or return undefined if needs registration
