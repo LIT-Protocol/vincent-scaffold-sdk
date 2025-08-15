@@ -87,7 +87,7 @@
     "ethers": "5.7.2",
     "inquirer": "^8.2.6",
     "ipfs-only-hash": "^4.0.0",
-    "viem": "^2.33.0"
+    "viem": "2.33.0"
   },
   "devDependencies": {
     "@ansonhkg/abi-extractor": "1.0.0",
