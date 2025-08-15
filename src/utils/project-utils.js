@@ -21,7 +21,7 @@ function isVincentProject(directory) {
     // Check for Vincent dependencies
     const hasVincentDeps =
       packageJson.dependencies &&
-      (packageJson.dependencies["@lit-protocol/vincent-app-sdk"] ||
+      (packageJson.dependencies["@lit-protocol/vincent-ability-sdk"] ||
         packageJson.dependencies["@lit-protocol/vincent-scaffold-sdk"]);
 
     if (!hasVincentDeps) {

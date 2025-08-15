@@ -30,7 +30,7 @@ const PACKAGES_CONFIG = {
   "dotenv-cli": { version: "8.0.0", behavior: "onlyIfMissing" },
   ethers: { version: "^5.7.2", behavior: "always" },
   chalk: { version: "4.1.2", behavior: "always" },
-  "@lit-protocol/vincent-app-sdk": { version: "*", behavior: "always" },
+  "@lit-protocol/vincent-ability-sdk": { version: "*", behavior: "always" },
   "@lit-protocol/vincent-scaffold-sdk": { version: "*", behavior: "always" },
   "@lit-protocol/vincent-contracts-sdk": { version: "*", behavior: "always" },
   // "@ansonhkg/abi-extractor": { version: "1.1.0", behavior: "always" },

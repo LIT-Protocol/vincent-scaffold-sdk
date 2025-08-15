@@ -81,7 +81,7 @@ vincent-packages/policies/policy-name/
 
 ### Ability Template Pattern
 ```typescript
-import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-ability-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
 export const vincentAbility = createVincentAbility({
@@ -117,7 +117,7 @@ export const vincentAbility = createVincentAbility({
 
 ### Policy Template Pattern
 ```typescript
-import { createVincentPolicy } from "@lit-protocol/vincent-app-sdk";
+import { createVincentPolicy } from "@lit-protocol/vincent-ability-sdk";
 
 export const vincentPolicy = createVincentPolicy({
   packageName: "{{packageName}}" as const,

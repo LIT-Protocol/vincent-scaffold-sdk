@@ -1,4 +1,4 @@
-import { createVincentPolicy } from "@lit-protocol/vincent-app-sdk";
+import { createVincentPolicy } from "@lit-protocol/vincent-ability-sdk";
 import { checkSendLimit, resetSendCounter } from "./helpers/index";
 import {
   commitAllowResultSchema,

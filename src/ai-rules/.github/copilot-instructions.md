@@ -64,7 +64,7 @@ export const executeFailSchema = z.object({
 When user types ability-related code:
 
 ```typescript
-import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-ability-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
 export const vincentAbility = createVincentAbility({
@@ -132,7 +132,7 @@ export const vincentAbility = createVincentAbility({
 When user types policy-related code:
 
 ```typescript
-import { createVincentPolicy } from "@lit-protocol/vincent-app-sdk";
+import { createVincentPolicy } from "@lit-protocol/vincent-ability-sdk";
 
 export const vincentPolicy = createVincentPolicy({
   packageName: "{{packageName}}" as const,
@@ -379,8 +379,7 @@ const handleOperation = async (): Promise<
 
 ```typescript
 // Core Vincent imports
-import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
-import { createVincentPolicy } from "@lit-protocol/vincent-app-sdk";
+import { createVincentAbility, createVincentPolicy } from "@lit-protocol/vincent-ability-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
 // Schema validation

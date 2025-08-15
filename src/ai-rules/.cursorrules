@@ -49,7 +49,7 @@ vincent-packages/
 
 ### Ability Implementation Pattern
 ```typescript
-import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-ability-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
 export const vincentAbility = createVincentAbility({
@@ -110,7 +110,7 @@ When working with templates or creating new components:
 ### Ability/Policy Development
 ```typescript
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
-import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-ability-sdk";
 import { z } from "zod";
 ```
 

@@ -12,7 +12,7 @@ This Vincent Starter Kit contains a sophisticated ability and policy system with
 
 ### Architecture Pattern
 
-- **Abilities** use Lit Actions with `@lit-protocol/vincent-app-sdk` framework
+- **Abilities** use Lit Actions with `@lit-protocol/vincent-ability-sdk` framework
 - **Ability hooks**: `precheck` (validation) and `execute` (transaction execution)
 - **Policy hooks**: `precheck`, `evaluate`, and `commit` for state management
 - **Type safety**: Zod schemas for strict input/output validation and type inference
@@ -110,8 +110,7 @@ import {
   createVincentAbility,
   createVincentPolicy,
   supportedPoliciesForAbility,
-} from "@lit-protocol/vincent-app-sdk";
-import "@lit-protocol/vincent-app-sdk/internal";
+} from "@lit-protocol/vincent-ability-sdk";
 import { bundledVincentPolicy } from "../../../../policies/send-counter-limit/dist/index.js";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk";
 ```

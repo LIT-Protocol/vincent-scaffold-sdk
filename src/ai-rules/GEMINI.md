@@ -53,7 +53,7 @@ export const executeSuccessSchema = z.object({
 ### 2. Ability Implementation Pattern
 
 ```typescript
-import { createVincentAbility } from "@lit-protocol/vincent-app-sdk";
+import { createVincentAbility } from "@lit-protocol/vincent-ability-sdk";
 import { laUtils } from "@lit-protocol/vincent-scaffold-sdk/la-utils";
 
 export const vincentAbility = createVincentAbility({

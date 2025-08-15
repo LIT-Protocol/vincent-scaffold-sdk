@@ -2,7 +2,7 @@ import {
   createVincentAbility,
   createVincentAbilityPolicy,
   supportedPoliciesForAbility,
-} from "@lit-protocol/vincent-app-sdk";
+} from "@lit-protocol/vincent-ability-sdk";
 import { bundledVincentPolicy } from "../../../../policies/send-counter-limit/dist/index.js";
 
 import {
