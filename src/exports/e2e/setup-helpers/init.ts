@@ -2,7 +2,6 @@ import { LIT_NETWORK } from "@lit-protocol/constants";
 import { LitContracts } from "@lit-protocol/contracts-sdk";
 import { getClient } from "@lit-protocol/vincent-contracts-sdk";
 import { ethers } from "ethers";
-import { STATUS_TO_DEPLOYMENT_STATUS } from "../constants/constants";
 import { ENV, StateManager } from "../managers";
 import {
   createPermitAppVersionFunction,
@@ -169,10 +168,6 @@ export const init = async ({
     pkp: ethers.utils.parseEther(fundingAmounts?.pkp || "0.001"),
   };
 
-  const _deploymentStatus =
-    STATUS_TO_DEPLOYMENT_STATUS[
-    deploymentStatus as keyof typeof STATUS_TO_DEPLOYMENT_STATUS
-    ];
   /**
    * ====================================
    * Initialize State Manager

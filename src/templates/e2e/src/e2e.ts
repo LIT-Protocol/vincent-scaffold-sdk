@@ -1,9 +1,9 @@
 import {
-  PARAMETER_TYPE,
   createAppConfig,
   init,
   suppressLitLogs,
 } from "@lit-protocol/vincent-scaffold-sdk/e2e";
+import type { PermissionData } from "@lit-protocol/vincent-contracts-sdk";
 
 // Apply log suppression FIRST, before any imports that might trigger logs
 suppressLitLogs(false);
@@ -36,41 +36,30 @@ import { bundledVincentAbility as nativeSendAbility } from "../../vincent-packag
 
   /**
    * ====================================
-   * Prepare the IPFS CIDs for the abilities and policies
-   * NOTE: All arrays below are parallel - each index corresponds to the same ability.
+   * Define permission data for abilities and policies
    * ❗️If you change the policy parameter values, you will need to reset the state file.
    * You can do this by running: npm run vincent:reset
    * ====================================
    */
+  const PERMISSION_DATA: PermissionData = {
+    [nativeSendAbility.ipfsCid]: {
+      [sendLimitPolicyMetadata.ipfsCid]: {
+        maxSends: 2,
+        timeWindowSeconds: 10,
+      },
+    },
+    // Add more abilities and their policies here:
+    // [anotherAbility.ipfsCid]: {
+    //   [anotherPolicy.ipfsCid]: {
+    //     paramName: value,
+    //   },
+    // },
+  };
+
   const appConfig = createAppConfig(
     {
-      abilityIpfsCids: [
-        // helloWorldAbility.ipfsCid,
-        nativeSendAbility.ipfsCid,
-        // ...add more ability IPFS CIDs here
-      ],
-      abilityPolicies: [
-        // [
-        //   // fooLimitPolicyMetadata.ipfsCid
-        // ],
-        [
-          sendLimitPolicyMetadata.ipfsCid, // Enable send-counter-limit policy for native-send ability
-        ],
-      ],
-      abilityPolicyParameterNames: [
-        // [], // No policy parameter names for helloWorldAbility
-        ["maxSends", "timeWindowSeconds"], // Policy parameter names for nativeSendAbility
-      ],
-      abilityPolicyParameterTypes: [
-        // [], // No policy parameter types for helloWorldAbility
-        [PARAMETER_TYPE.UINT256, PARAMETER_TYPE.UINT256], // uint256 types for maxSends and timeWindowSeconds
-      ],
-      abilityPolicyParameterValues: [
-        // [], // No policy parameter values for helloWorldAbility
-        ["2", "10"], // maxSends: 2, timeWindowSeconds: 10
-      ],
+      permissionData: PERMISSION_DATA,
     },
-
     // Debugging options
     {
       cidToNameMap: {
@@ -112,8 +101,7 @@ import { bundledVincentAbility as nativeSendAbility } from "../../vincent-packag
   const { appId, appVersion } = await accounts.appManager.registerApp({
     abilityIpfsCids: appConfig.ABILITY_IPFS_CIDS,
     abilityPolicies: appConfig.ABILITY_POLICIES,
-    abilityPolicyParameterNames: appConfig.ABILITY_POLICY_PARAMETER_NAMES,
-    abilityPolicyParameterTypes: appConfig.ABILITY_POLICY_PARAMETER_TYPES,
+    policyParams: appConfig.PERMISSION_DATA,
   });
 
   console.log("✅ Vincent app registered:", { appId, appVersion });
@@ -124,14 +112,12 @@ import { bundledVincentAbility as nativeSendAbility } from "../../vincent-packag
    * ====================================
    */
   await accounts.agentWalletPkpOwner.permitAppVersion({
-    pkpTokenId: agentWalletPkp.tokenId,
+    pkpEthAddress: agentWalletPkp.ethAddress,
     appId,
     appVersion,
     abilityIpfsCids: appConfig.ABILITY_IPFS_CIDS,
     policyIpfsCids: appConfig.ABILITY_POLICIES,
-    policyParameterNames: appConfig.ABILITY_POLICY_PARAMETER_NAMES,
-    policyParameterValues: appConfig.ABILITY_POLICY_PARAMETER_VALUES,
-    policyParameterTypes: appConfig.ABILITY_POLICY_PARAMETER_TYPES,
+    policyParams: appConfig.PERMISSION_DATA,
   });
 
   console.log("✅ PKP permitted to use app version");
@@ -159,7 +145,7 @@ import { bundledVincentAbility as nativeSendAbility } from "../../vincent-packag
    */
   const validation = await accounts.appManager.validateAbilityExecution({
     delegateeAddress: accounts.delegatee.ethersWallet.address,
-    pkpTokenId: agentWalletPkp.tokenId,
+    pkpEthAddress: agentWalletPkp.ethAddress,
     abilityIpfsCid: nativeSendAbility.ipfsCid,
   });
 

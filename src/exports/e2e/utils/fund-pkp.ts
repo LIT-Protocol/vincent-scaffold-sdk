@@ -6,7 +6,7 @@ import { ethers } from "ethers";
  * @param pkpAddress The PKP's Ethereum address
  * @param isNewPKP Whether this is a newly minted PKP
  * @param funderWallet The ethers wallet to fund from
- * @param publicClient The viem public client to check balance (for compatibility)
+ * @param provider The ethers provider to check balance
  * @param fundAmount Amount to fund (default: 0.01 ETH)
  */
 export async function fundPKPIfNeeded(
@@ -21,7 +21,6 @@ export async function fundPKPIfNeeded(
     }`
   );
 
-  // Check PKP balance - using viem public client for compatibility
   const balance = await provider.getBalance(pkpAddress);
   console.log("   ↳ PKP Balance:", ethers.utils.formatEther(balance.toString()));
 

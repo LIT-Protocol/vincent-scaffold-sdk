@@ -1,56 +1,43 @@
-import { PARAMETER_TYPE } from "../constants";
-
-// Type alias for cleaner parameter type definitions
-type ParameterType = (typeof PARAMETER_TYPE)[keyof typeof PARAMETER_TYPE];
-
-// Helper function to convert PARAMETER_TYPE values back to their readable names
-function getParameterTypeName(value: ParameterType): string {
-  const entry = Object.entries(PARAMETER_TYPE).find(([_, v]) => v === value);
-  return entry ? entry[0] : `Unknown(${value})`;
-}
+import type { PermissionData } from "@lit-protocol/vincent-contracts-sdk";
 
 /**
- * Creates a type-safe app configuration where all arrays must have the same length
+ * Creates a type-safe app configuration using the new PermissionData structure
  */
-export function createAppConfig<const T extends readonly string[]>(
+export function createAppConfig(
   config: {
-    abilityIpfsCids: T;
-    abilityPolicies: { readonly [K in keyof T]: string[] };
-    abilityPolicyParameterNames: { readonly [K in keyof T]: string[] };
-    abilityPolicyParameterTypes: { readonly [K in keyof T]: ParameterType[] };
-    abilityPolicyParameterValues: { readonly [K in keyof T]: string[] };
+    permissionData: PermissionData;
   },
   {
     debug = false,
     cidToNameMap,
   }: { debug?: boolean; cidToNameMap?: Record<string, string> } = {}
 ) {
+  // Extract ability IPFS CIDs from the permission data
+  const abilityIpfsCids = Object.keys(config.permissionData);
+  
+  // Extract policies for each ability
+  const abilityPolicies = abilityIpfsCids.map(abilityIpfsCid => 
+    Object.keys(config.permissionData[abilityIpfsCid])
+  );
+
   const appConfig = {
-    ABILITY_IPFS_CIDS: [...config.abilityIpfsCids],
-    ABILITY_POLICIES: config.abilityPolicies.map((policies) => [...policies]),
-    ABILITY_POLICY_PARAMETER_NAMES: config.abilityPolicyParameterNames.map(
-      (names) => [...names]
-    ),
-    ABILITY_POLICY_PARAMETER_TYPES: config.abilityPolicyParameterTypes.map(
-      (types) => [...types]
-    ),
-    ABILITY_POLICY_PARAMETER_VALUES: config.abilityPolicyParameterValues.map(
-      (values) => [...values]
-    ),
+    ABILITY_IPFS_CIDS: abilityIpfsCids,
+    ABILITY_POLICIES: abilityPolicies,
+    PERMISSION_DATA: config.permissionData,
   };
 
   if (debug) {
     console.log("🔍 Debug Configuration Summary:");
     console.log("────────────────────────────────────────");
 
-    config.abilityIpfsCids.forEach((cid, index) => {
+    abilityIpfsCids.forEach((cid, index) => {
       const abilityName = cidToNameMap?.[cid] || `Unknown Ability`;
       const shortCid = cid.slice(0, 8);
 
       console.log(`\n📦 Ability ${index + 1}: ${abilityName} (${shortCid}...)`);
 
       // Show policies
-      const policies = config.abilityPolicies[index];
+      const policies = abilityPolicies[index];
       if (policies.length === 0) {
         console.log(`   🛡️  Policies: None`);
       } else {
@@ -59,20 +46,15 @@ export function createAppConfig<const T extends readonly string[]>(
           const policyName = cidToNameMap?.[policyCid] || `Unknown Policy`;
           const shortPolicyCid = policyCid.slice(0, 8);
           console.log(`      • ${policyName} (${shortPolicyCid}...)`);
-        });
-      }
-
-      // Show parameters
-      const paramNames = config.abilityPolicyParameterNames[index];
-      if (paramNames.length === 0) {
-        console.log(`   ⚙️  Parameters: None`);
-      } else {
-        console.log(`   ⚙️  Parameters:`);
-        paramNames.forEach((name, paramIndex) => {
-          const type = config.abilityPolicyParameterTypes[index][paramIndex];
-          const value = config.abilityPolicyParameterValues[index][paramIndex];
-          const typeName = getParameterTypeName(type);
-          console.log(`      • ${name}: ${value} (${typeName})`);
+          
+          // Show policy parameters
+          const policyParams = config.permissionData[cid][policyCid];
+          if (policyParams && Object.keys(policyParams).length > 0) {
+            console.log(`      Parameters:`);
+            Object.entries(policyParams).forEach(([paramName, paramValue]) => {
+              console.log(`        - ${paramName}: ${paramValue}`);
+            });
+          }
         });
       }
     });

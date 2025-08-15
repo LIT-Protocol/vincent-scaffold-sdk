@@ -3,12 +3,6 @@ import chalk from "chalk";
 
 import { StateManager } from "./state-manager";
 
-// Type definitions
-export interface PublicViemClientManager {
-  yellowstone: any; // PublicClient type
-  base: any; // PublicClient type
-}
-
 /**
  * Generates a random app ID
  * @returns A random app ID
