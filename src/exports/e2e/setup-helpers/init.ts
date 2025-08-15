@@ -160,12 +160,12 @@ export const init = async ({
   deploymentStatus?: "dev" | "staging" | "production";
 }): Promise<InitResult> => {
   const _fundingAmounts = {
-    appManager: ethers.utils.parseEther(fundingAmounts?.appManager || "0.001"),
+    appManager: ethers.utils.parseEther(fundingAmounts?.appManager || fundAmount),
     agentWalletPkpOwner: ethers.utils.parseEther(
-      fundingAmounts?.agentWalletPkpOwner || "0.01"
+      fundingAmounts?.agentWalletPkpOwner || fundAmount
     ),
-    delegatee: ethers.utils.parseEther(fundingAmounts?.delegatee || "0.001"),
-    pkp: ethers.utils.parseEther(fundingAmounts?.pkp || "0.001"),
+    delegatee: ethers.utils.parseEther(fundingAmounts?.delegatee || fundAmount),
+    pkp: ethers.utils.parseEther(fundingAmounts?.pkp || fundAmount),
   };
 
   /**

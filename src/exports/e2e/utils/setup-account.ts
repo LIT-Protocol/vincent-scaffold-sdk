@@ -24,9 +24,12 @@ export async function setupAccount(
   const balance = await provider.getBalance(account.address);
   console.log("   ↳ Balance:", ethers.utils.formatEther(balance));
 
-  // Fund if new account with zero balance
-  if (account.isNew && balance.isZero()) {
-    console.log(chalk.yellow("   ↳ Funding new account..."));
+  // Fund if new account with zero balance OR if balance is insufficient
+  const needsFunding = account.isNew && balance.isZero() || balance.lt(fundAmount);
+
+  if (needsFunding) {
+    const reason = account.isNew && balance.isZero() ? "new account" : "insufficient balance";
+    console.log(chalk.yellow(`   ↳ Funding ${reason}...`));
     const tx = await funderWallet.sendTransaction({
       to: account.address,
       value: fundAmount,
