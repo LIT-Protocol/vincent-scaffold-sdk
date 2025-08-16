@@ -1,3 +1,5 @@
+import { ethers } from "ethers";
+
 /**
  * LitActionsSmartSigner for EIP-7702 delegated transactions
  *
