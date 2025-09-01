@@ -14,7 +14,7 @@ import { getAlchemyChainConfig } from "../../../la-helpers/getAlchemyChainConfig
  * @param functionName - The name of the function to call
  * @param args - The arguments to pass to the function
  * @param overrides - Optional transaction overrides (value)
- * @param chainId - Optional chain ID (defaults to yellowstoneConfig.id)
+ * @param chainId - Chain ID (defaults to yellowstoneConfig.id)
  * @param eip7702AlchemyApiKey - The Alchemy API key for gas sponsorship
  * @param eip7702AlchemyPolicyId - The Alchemy policy ID for gas sponsorship
  * @returns The UserOperation hash.  You must use the alchemy smartAccountClient.waitForUserOperationTransaction() to convert the userOp into a txHash.
@@ -39,9 +39,9 @@ export const sponsoredGasContractCall = async ({
     value?: string | number | bigint;
     gasLimit?: number;
   };
-  chainId?: number;
-  eip7702AlchemyApiKey?: string;
-  eip7702AlchemyPolicyId?: string;
+  chainId: number;
+  eip7702AlchemyApiKey: string;
+  eip7702AlchemyPolicyId: string;
 }) => {
   // Step 1: Encode function data using ethers Interface
   const iface = new ethers.utils.Interface(abi);
